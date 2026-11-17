@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>레일스펙 - 대한민국 열차 &amp; 상징적인 역 도감</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .custom-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: #334155 transparent;
+        }
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: #334155;
+            border-radius: 10px;
+        }
+        .train-card-active {
+            border-color: #38bdf8 !important;
+            background-color: rgba(56, 189, 248, 0.15) !important;
+            transform: translateY(-2px);
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.78);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col md:flex-row overflow-hidden select-none">
+
+    <!-- Sidebar / Train Selector Area -->
+    <aside class="w-full md:w-96 glass-panel flex flex-col z-20 shrink-0 h-[46vh] min-h-[340px] md:h-screen border-r border-slate-800">
+        
+        <!-- App Title Header & Quick Dropdown Select -->
+        <div class="p-4 border-b border-slate-800 bg-slate-900/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white text-lg font-black shadow-lg shadow-cyan-500/30">
+                    <i class="fa-solid fa-train"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg tracking-tight text-white flex items-center gap-2">
+                        RailSpec <span class="text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-semibold px-2 py-0.5 rounded-full">v2.8</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-400">대한민국 열차 &amp; 상징적인 역 도감</p>
+                </div>
+            </div>
+
+            <!-- Quick Train & Station Selection Dropdown Box -->
+            <div class="w-full sm:w-44">
+                <select id="train-select-dropdown" onchange="selectTrain(this.value)" 
+                        class="w-full bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/50 rounded-xl px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-cyan-400 cursor-pointer shadow-md">
+                </select>
+            </div>
+        </div>
+
+        <!-- Live Search Bar -->
+        <div class="p-3 border-b border-slate-800/80 bg-slate-950/40 shrink-0">
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <input type="text" id="train-search-input" placeholder="열차·기차역·구간 검색 (예: 정동진, 추전역, 천안아산 대전)..." 
+                       class="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                       oninput="filterTrains()">
+                <button onclick="clearSearch()" id="clear-search-btn" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Quick Segment Search Tags -->
+            <div class="mt-2 flex items-center gap-1.5 overflow-x-auto custom-scroll pb-1">
+                <span class="text-[10px] text-slate-400 shrink-0 font-medium"><i class="fa-solid fa-route text-cyan-400"></i> 인기구간:</span>
+                <button onclick="setSegmentSearch('천안아산 대전')" class="bg-slate-800/90 hover:bg-cyan-500/20 hover:text-cyan-300 text-slate-300 text-[10px] px-2 py-0.5 rounded-md border border-slate-700 shrink-0 transition-all">천안아산↔대전</button>
+                <button onclick="setSegmentSearch('서울 부산')" class="bg-slate-800/90 hover:bg-cyan-500/20 hover:text-cyan-300 text-slate-300 text-[10px] px-2 py-0.5 rounded-md border border-slate-700 shrink-0 transition-all">서울↔부산</button>
+                <button onclick="setSegmentSearch('수원 천안')" class="bg-slate-800/90 hover:bg-cyan-500/20 hover:text-cyan-300 text-slate-300 text-[10px] px-2 py-0.5 rounded-md border border-slate-700 shrink-0 transition-all">수원↔천안</button>
+                <button onclick="setSegmentSearch('청량리 태백')" class="bg-slate-800/90 hover:bg-cyan-500/20 hover:text-cyan-300 text-slate-300 text-[10px] px-2 py-0.5 rounded-md border border-slate-700 shrink-0 transition-all">청량리↔태백</button>
+                <button onclick="setSegmentSearch('익산 목포')" class="bg-slate-800/90 hover:bg-cyan-500/20 hover:text-cyan-300 text-slate-300 text-[10px] px-2 py-0.5 rounded-md border border-slate-700 shrink-0 transition-all">익산↔목포</button>
+                <button onclick="setSegmentSearch('순천 여수')" class="bg-slate-800/90 hover:bg-cyan-500/20 hover:text-cyan-300 text-slate-300 text-[10px] px-2 py-0.5 rounded-md border border-slate-700 shrink-0 transition-all">순천↔여수</button>
+                <button onclick="setSegmentSearch('구미 밀양')" class="bg-slate-800/90 hover:bg-cyan-500/20 hover:text-cyan-300 text-slate-300 text-[10px] px-2 py-0.5 rounded-md border border-slate-700 shrink-0 transition-all">구미↔밀양</button>
+                <button onclick="setSegmentSearch('홍성 대천')" class="bg-slate-800/90 hover:bg-cyan-500/20 hover:text-cyan-300 text-slate-300 text-[10px] px-2 py-0.5 rounded-md border border-slate-700 shrink-0 transition-all">홍성↔대천</button>
+            </div>
+
+            <!-- Category Filter Pills -->
+            <div class="flex gap-1.5 mt-2 overflow-x-auto custom-scroll pb-1">
+                <button onclick="filterCategory('all')" id="cat-all" class="cat-pill bg-cyan-500 text-slate-950 font-bold text-[11px] px-2.5 py-1 rounded-lg shrink-0 transition-all">전체</button>
+                <button onclick="filterCategory('station')" id="cat-station" class="cat-pill bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-[11px] px-2.5 py-1 rounded-lg shrink-0 transition-all">🏛️ 상징적인 역</button>
+                <button onclick="filterCategory('highspeed')" id="cat-highspeed" class="cat-pill bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-[11px] px-2.5 py-1 rounded-lg shrink-0 transition-all">고속/급행 (KTX/SRT/GTX)</button>
+                <button onclick="filterCategory('intercity')" id="cat-intercity" class="cat-pill bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-[11px] px-2.5 py-1 rounded-lg shrink-0 transition-all">특급/간선 (ITX)</button>
+                <button onclick="filterCategory('regional')" id="cat-regional" class="cat-pill bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-[11px] px-2.5 py-1 rounded-lg shrink-0 transition-all">일반 (무궁화/누리로)</button>
+                <button onclick="filterCategory('locomotive')" id="cat-locomotive" class="cat-pill bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-[11px] px-2.5 py-1 rounded-lg shrink-0 transition-all">기관차 (디젤/전기/증기)</button>
+                <button onclick="filterCategory('tourist')" id="cat-tourist" class="cat-pill bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-[11px] px-2.5 py-1 rounded-lg shrink-0 transition-all">관광/호텔 (해랑/협곡)</button>
+                <button onclick="filterCategory('heritage')" id="cat-heritage" class="cat-pill bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-[11px] px-2.5 py-1 rounded-lg shrink-0 transition-all">전설/명차 (새마을/비둘기)</button>
+            </div>
+        </div>
+
+        <!-- Train & Station List Item Cards -->
+        <div class="flex-1 overflow-y-auto custom-scroll p-2.5 space-y-2" id="train-list-container">
+            <!-- Dynamic Cards generated by JavaScript -->
+        </div>
+
+        <!-- Sidebar Footer -->
+        <div class="p-3 bg-slate-950/80 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between shrink-0">
+            <span>총 <strong id="train-count-badge" class="text-cyan-400">30</strong>개 도감 데이터 탑재</span>
+            <span class="text-slate-500">한국철도공사/SR 사양 기준</span>
+        </div>
+    </aside>
+
+    <!-- Main Detail View Screen -->
+    <main class="flex-1 relative overflow-y-auto custom-scroll flex flex-col h-[54vh] md:h-screen" id="main-view-container">
+        
+        <!-- Dynamic Hero Banner with Train Photo & Gradient Background -->
+        <div id="hero-banner" class="relative min-h-[320px] md:min-h-[390px] p-6 md:p-10 flex flex-col justify-between overflow-hidden transition-all duration-700 bg-gradient-to-br from-cyan-950 via-slate-900 to-blue-950 shrink-0">
+            
+            <!-- Real Train Photo Background Layer -->
+            <img id="hero-train-photo" src="" alt="열차 배경 사진" 
+                 class="absolute inset-0 w-full h-full object-cover object-center opacity-40 mix-blend-luminosity transition-all duration-700 pointer-events-none"
+                 onerror="this.style.display='none'; var sw = document.getElementById('hero-train-svg-wrapper'); if(sw) sw.classList.remove('hidden');">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/65 to-slate-900/40 pointer-events-none"></div>
+
+            <!-- Dynamic SVG Train Visual Overlay Background (Fallback when image fails) -->
+            <div id="hero-train-svg-wrapper" class="hidden absolute inset-0 pointer-events-none opacity-25 flex items-center justify-end pr-4 md:pr-16 overflow-hidden">
+                <svg id="hero-train-svg" class="w-[500px] h-[260px] md:w-[700px] md:h-[340px] text-white transition-all duration-500" viewBox="0 0 800 300" fill="currentColor">
+                </svg>
+            </div>
+
+            <!-- Top Header Badges -->
+            <div class="relative z-10 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span id="detail-category-badge" class="bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur">
+                        고속열차
+                    </span>
+                    <span id="detail-power-type" class="bg-slate-800/80 text-slate-300 border border-slate-700 text-xs font-semibold px-3 py-1 rounded-full">
+                        동력분산식 (EMU-320)
+                    </span>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button type="button" onclick="openPhotoModal()" class="text-xs font-bold bg-cyan-500/25 hover:bg-cyan-500/45 text-cyan-200 border border-cyan-400/40 backdrop-blur px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-md cursor-pointer">
+                        <i class="fa-solid fa-camera"></i> 실물 사진 크게보기
+                    </button>
+                    <div class="flex items-center gap-2 text-xs font-mono bg-slate-950/60 backdrop-blur px-3 py-1.5 rounded-xl border border-slate-800">
+                        <i class="fa-solid fa-calendar-check text-cyan-400"></i>
+                        <span id="detail-year-label" class="text-slate-400">도입시기:</span>
+                        <strong id="detail-intro-year" class="text-white">2024년</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hero Title & Key Metric Cards -->
+            <div class="relative z-10 mt-6">
+                <h2 id="detail-name" class="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight drop-shadow-md">
+                    KTX-청룡 (EMU-320)
+                </h2>
+                <p id="detail-subname" class="text-xs sm:text-sm md:text-base text-slate-300 mt-1.5 font-medium">
+                    대한민국 차세대 320km/h급 동력분산식 고속열차
+                </p>
+
+                <!-- 4 Key Spec Highlights -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
+                    <div class="bg-slate-950/75 backdrop-blur-md border border-white/10 rounded-2xl p-3.5">
+                        <p id="metric-label-1" class="text-[11px] text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-gauge-high text-cyan-400"></i> 설계 최고속도</p>
+                        <p id="detail-max-speed" class="text-base md:text-lg font-black text-white mt-1">352 km/h</p>
+                    </div>
+                    <div class="bg-slate-950/75 backdrop-blur-md border border-white/10 rounded-2xl p-3.5">
+                        <p id="metric-label-2" class="text-[11px] text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-bolt text-amber-400"></i> 영업 최고속도</p>
+                        <p id="detail-op-speed" class="text-base md:text-lg font-black text-cyan-300 mt-1">320 km/h</p>
+                    </div>
+                    <div class="bg-slate-950/75 backdrop-blur-md border border-white/10 rounded-2xl p-3.5">
+                        <p id="metric-label-3" class="text-[11px] text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-users text-emerald-400"></i> 좌석 / 편성 정원</p>
+                        <p id="detail-capacity" class="text-xs md:text-sm font-bold text-white mt-1 leading-snug">515석 (8량 1편성)</p>
+                    </div>
+                    <div class="bg-slate-950/75 backdrop-blur-md border border-white/10 rounded-2xl p-3.5">
+                        <p id="metric-label-4" class="text-[11px] text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-industry text-purple-400"></i> 제작사 / 편성</p>
+                        <p id="detail-manufacturer" class="text-xs md:text-sm font-bold text-white mt-1 leading-snug">현대로템</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detail Content Section (Exterior Photo, Specifications, Routes, Features & Trivia) -->
+        <div class="p-6 md:p-10 space-y-8 bg-slate-900 flex-1">
+            
+            <!-- Section 0: Real Exterior Train/Station Photo Card -->
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 id="section-photo-title" class="text-base md:text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-image text-cyan-400"></i> 열차 실물 외관 포토 (Exterior Photo)
+                    </h3>
+                    <button type="button" onclick="openPhotoModal()" class="text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 cursor-pointer">
+                        <i class="fa-solid fa-magnifying-glass-plus"></i> 원본 확대
+                    </button>
+                </div>
+                <div onclick="openPhotoModal()" class="group relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 shadow-xl cursor-pointer">
+                    <img id="detail-train-photo" src="" alt="열차 외관 사진" 
+                         class="w-full h-56 sm:h-72 md:h-80 object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                         onerror="this.onerror=null; this.src='https://placehold.co/1000x500/0f172a/38bdf8?text=KORAIL+%2F+SR+Train+Photo';">
+                    <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-transparent p-4 flex items-end justify-between">
+                        <div>
+                            <p id="detail-photo-caption" class="text-xs md:text-sm font-bold text-white">실물 차량 외관</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5">클릭하면 전체 화면으로 선명하게 볼 수 있습니다.</p>
+                        </div>
+                        <span class="w-8 h-8 rounded-full bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center text-white text-xs group-hover:bg-cyan-500 group-hover:border-cyan-400 transition-colors">
+                            <i class="fa-solid fa-expand"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 1: Operating Routes & Major Stations -->
+            <div>
+                <h3 id="section-route-title" class="text-base md:text-lg font-bold text-white flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-route text-emerald-400"></i> 운행 노선 및 주요 정차역
+                </h3>
+                <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div>
+                        <p id="detail-routes-subtitle" class="text-xs font-bold text-slate-400 mb-2">투입 노선</p>
+                        <div id="detail-routes-container" class="flex flex-wrap gap-2">
+                            <!-- Route pills injected -->
+                        </div>
+                    </div>
+                    <div class="pt-3 border-t border-slate-800/80">
+                        <p id="detail-stations-subtitle" class="text-xs font-bold text-slate-400 mb-1.5">주요 정차역 및 경유 구간</p>
+                        <p id="detail-stations-text" class="text-xs md:text-sm text-slate-300 leading-relaxed">
+                            <!-- Stations text injected -->
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Detailed Specifications & Iconic Features -->
+            <div>
+                <h3 id="section-spec-title" class="text-base md:text-lg font-bold text-white flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-microchip text-cyan-400"></i> 상세 기술 사양 및 핵심 특징 (Specifications)
+                </h3>
+                <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-5">
+                    <ul id="detail-features-list" class="space-y-3 text-xs md:text-sm text-slate-300">
+                        <!-- Features items injected -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 3: History & Background Story -->
+            <div>
+                <h3 id="section-story-title" class="text-base md:text-lg font-bold text-white flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-book-open text-purple-400"></i> 열차 스토리 &amp; 출사 팁
+                </h3>
+                <div class="bg-gradient-to-r from-slate-950 to-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <p id="detail-story-text" class="text-xs md:text-sm text-slate-300 leading-relaxed">
+                        <!-- Story text injected -->
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Full-Screen Photo Lightbox Modal -->
+    <div id="photo-modal" onclick="closePhotoModal()" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 md:p-8">
+        <div onclick="event.stopPropagation()" class="relative max-w-4xl w-full bg-slate-900 border border-slate-700 rounded-3xl overflow-hidden shadow-2xl">
+            <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-800 bg-slate-950/80">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-train text-cyan-400"></i>
+                    <h4 id="modal-train-title" class="font-extrabold text-sm md:text-base text-white">열차 사진 보기</h4>
+                </div>
+                <button type="button" onclick="closePhotoModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="bg-black flex items-center justify-center max-h-[75vh] overflow-hidden">
+                <img id="modal-train-img" src="" alt="열차 확대 사진" 
+                     class="w-full max-h-[75vh] object-contain"
+                     onerror="this.onerror=null; this.src='https://placehold.co/1200x700/0f172a/38bdf8?text=Train+Exterior+View';">
+            </div>
+            <div class="px-5 py-3 bg-slate-950/90 border-t border-slate-800 text-xs text-slate-300 flex items-center justify-between gap-2">
+                <span id="modal-train-caption">실물 차량 외관</span>
+                <span class="text-slate-500 text-[11px] shrink-0">ESC 또는 바깥 영역 클릭 시 닫힘</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 전국의 대표 열차 종합 데이터베이스 (전 노선, 정차역, 기술 특징 및 실물 사진 URL 완비)
+        const trainDatabase = [
+            {
+                id: 'ktx-cheongryong',
+                name: 'KTX-청룡 (EMU-320)',
+                subName: '대한민국 차세대 320km/h급 동력분산식 고속열차',
+                category: 'highspeed',
+                catLabel: '고속열차',
+                catBadgeClass: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+                powerType: '동력분산식 (EMU-320)',
+                introYear: '2024년 5월',
+                maxSpeed: '352 km/h',
+                opSpeed: '320 km/h',
+                capacity: '515석 (8량 1편성)',
+                manufacturer: '현대로템 (100% 국내 독자 기술)',
+                gradientTheme: 'from-cyan-950 via-slate-900 to-blue-950',
+                accentColor: '#06b6d4',
+                svgPreset: 'bullet-sharp',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/KTX-Cheongryong.jpg?width=1000',
+                imageCaption: '차세대 320km/h 동력분산식 고속열차 KTX-청룡 (EMU-320)',
+                routes: ['경부고속선 (서울~천안아산~대전~동대구~부산 급행)', '호남고속선 (용산~익산~광주송정 급행)'],
+                stations: '서울, 용산, 광명, 천안아산, 오송, 대전, 동대구, 울산, 부산, 익산, 광주송정',
+                features: [
+                    '동력분산식(EMU) 구조 채택: 별도 동력차가 없어 전 객차에 승객 탑승 가능 (KTX-산천 대비 수송력 약 35% 증가)',
+                    '압도적 가속 성능: 0 → 300km/h 도달 시간 3분 32초로 한국형 단거리 역간 고속 주행에 최적화',
+                    '객실 내 편의 극대화: 좌석 간격 1,060mm 확대, 독립형 창문, 개별 220V 콘센트·USB 포트·무선충전기 탑재',
+                    '초고속 주행 소음 저감 및 2편성 중련(16량 1,030석) 운행 가능'
+                ],
+                story: '2024년 갑진년 푸른 용의 해에 데뷔한 현대로템 제작 순수 국산 동력분산식 고속열차입니다. 기존 KTX-1이나 산천과 달리 앞뒤 기관차가 따로 없는 유선형 선두부 디자인이 특징이며, 정차역을 최소화한 급행 노선에 주로 투입됩니다.'
+            },
+            {
+                id: 'ktx-eum',
+                name: 'KTX-이음 (EMU-260)',
+                subName: '강릉선·중앙선·중부내륙선을 달리는 준고속 동력분산식 열차',
+                category: 'highspeed',
+                catLabel: '준고속열차',
+                catBadgeClass: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+                powerType: '동력분산식 (EMU-260)',
+                introYear: '2021년 1월',
+                maxSpeed: '286 km/h',
+                opSpeed: '260 km/h',
+                capacity: '381석 (6량 1편성)',
+                manufacturer: '현대로템',
+                gradientTheme: 'from-blue-950 via-slate-900 to-indigo-950',
+                accentColor: '#3b82f6',
+                svgPreset: 'bullet-sharp',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Korail_KTX-Eum,_Yongsan_(20240404)_(54220932565).jpg?width=1000',
+                imageCaption: '강릉선·중앙선·중부내륙선 주력 준고속열차 KTX-이음 (EMU-260)',
+                routes: ['강릉선 (서울/청량리~강릉/동해)', '중앙선 (서울/청량리~제천~영주~안동)', '중부내륙선 (판교~부발~충주~문경)'],
+                stations: '서울, 청량리, 상봉, 양평, 서원주, 만종, 횡성, 둔내, 평창, 진부, 강릉, 정동진, 묵호, 동해, 원주, 제천, 단양, 풍기, 영주, 안동, 판교, 부발, 충주, 수안보온천, 연풍, 문경',
+                features: [
+                    '대한민국 최초의 영업용 동력분산식(EMU) 고속열차',
+                    '산악 곡선과 구배가 많은 기존 간선·준고속 노선에서 뛰어난 가감속 성능 발휘',
+                    '전 좌석 무선충전기, USB 포트, 220V 콘센트 및 넓은 시트 피치 적용',
+                    '저상·고상 승강장 모두 대응 가능한 스텝 변환 출입문 장착'
+                ],
+                story: '비수도권 간선 철도망의 고속화 시대를 연 주역입니다. KTX-청룡의 기술적 모태가 되었으며, 강릉선, 중앙선, 중부내륙선 등 지역과 지역을 촘촘히 잇는다는 뜻에서 "이음"이라는 이름을 얻었습니다.'
+            },
+            {
+                id: 'ktx-sancheon',
+                name: 'KTX-산천 (관절대차 고속열차)',
+                subName: '국내 기술로 상용화한 관절대차 방식의 주력 고속열차',
+                category: 'highspeed',
+                catLabel: '고속열차',
+                catBadgeClass: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
+                powerType: '동력집중식 + 관절대차 (10량)',
+                introYear: '2010년 3월',
+                maxSpeed: '330 km/h',
+                opSpeed: '305 km/h',
+                capacity: '363~410석 (10량 1편성)',
+                manufacturer: '현대로템',
+                gradientTheme: 'from-slate-900 via-sky-950 to-slate-900',
+                accentColor: '#38bdf8',
+                svgPreset: 'bullet-curved',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/KTX-Sancheon.jpg?width=1000',
+                imageCaption: '대한민국 독자 기술로 개발된 관절대차 고속열차 KTX-산천',
+                routes: ['경부고속선 (서울~수원/대전~부산)', '호남/전라선 (용산~익산~목포/여수)', '동해선 (서울~포항)', '경전선 (서울~마산~진주)'],
+                stations: '행신, 서울, 영등포, 수원, 광명, 천안아산, 오송, 대전, 김천구미, 서대구, 동대구, 경주, 울산, 부산, 구포, 밀양, 진영, 창원중앙, 창원, 마산, 진주, 포항, 용산, 공주, 익산, 정읍, 광주송정, 나주, 목포, 전주, 남원, 곡성, 구례구, 순천, 여천, 여수엑스포',
+                features: [
+                    '관절대차(Articulated Bogie) 구조: 객차와 객차 연결부 마디 사이에 대차가 위치하여 탈선 시 열차가 꺾이는 잭나이프 현상을 원천 차단',
+                    '토종 민물고기 "산천어"를 형상화한 유선형 알루미늄 차체 디자인',
+                    '10량 1편성의 콤팩트한 편성으로 2편성을 결합(20량 중련)해 유연한 수요 대응 가능',
+                    'KTX-1 대비 대폭 개선된 레그룸과 전 좌석 회전식 시트 채택'
+                ],
+                story: '한국형 고속철도(HSR-350X) 시제차 기술을 바탕으로 세계에서 4번째로 자체 개발해 상용화한 고속열차입니다. 관절대차 특유의 묵직한 주행 안정성과 2편성 복합열차(중련) 운행이 큰 매력입니다.'
+            },
+            {
+                id: 'ktx-1',
+                name: 'KTX-1 (초기형 20량 장대열차)',
+                subName: '대한민국 고속철도 시대를 개막한 388m 초장대 고속열차',
+                category: 'highspeed',
+                catLabel: '고속열차',
+                catBadgeClass: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+                powerType: '동력집중식 + 관절대차 (20량)',
+                introYear: '2004년 4월',
+                maxSpeed: '330 km/h',
+                opSpeed: '305 km/h',
+                capacity: '935~955석 (20량 1편성)',
+                manufacturer: '알스톰 (Alstom) / 현대로템',
+                gradientTheme: 'from-indigo-950 via-slate-900 to-slate-950',
+                accentColor: '#6366f1',
+                svgPreset: 'bullet-curved',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/KTX-I_in_Seoul_Station.jpg?width=1000',
+                imageCaption: '서울역에 정차 중인 20량 장대 고속열차 KTX-1',
+                routes: ['경부고속선 (서울/영등포/수원~대전~동대구~부산)', '호남선 (용산~익산~광주송정~목포)'],
+                stations: '행신, 서울, 영등포, 수원, 광명, 천안아산, 오송, 대전, 서대전, 계룡, 논산, 김천구미, 서대구, 동대구, 경주, 울산, 부산, 구포, 밀양, 용산, 익산, 정읍, 광주송정, 나주, 목포',
+                features: [
+                    '전장 388m에 달하는 20량 고정 편성(동력차 2 + 동력객차 2 + 일반/특실 객차 16)의 압도적 수송력',
+                    '프랑스 TGV Réseau 기반의 검증된 관절대차(Articulated Bogie) 구조로 최고 수준의 고속 주행 안전성 확보',
+                    '1편성당 약 955명을 한 번에 수송하는 대한민국 철도 최다 정원 열차',
+                    '5호차 자유석 및 특실 1인 독립 좌석 운영'
+                ],
+                story: '2004년 4월 1일 개통과 함께 전국을 반나절 생활권으로 바꾼 역사적인 열차입니다. 20량 한 줄로 길게 뻗은 모습은 지금도 국내 철도 동호인들 사이에서 장관으로 꼽힙니다.'
+            },
+            {
+                id: 'srt',
+                name: 'SRT (수서고속철도)',
+                subName: '강남·수서권에서 출발하는 프리미엄 고속열차',
+                category: 'highspeed',
+                catLabel: '고속열차',
+                catBadgeClass: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+                powerType: '동력집중식 + 관절대차 (10량)',
+                introYear: '2016년 12월',
+                maxSpeed: '330 km/h',
+                opSpeed: '300 km/h',
+                capacity: '410석 (10량 1편성)',
+                manufacturer: '현대로템 (120000호대 / 130000호대)',
+                gradientTheme: 'from-purple-950 via-slate-900 to-slate-950',
+                accentColor: '#a855f7',
+                svgPreset: 'bullet-curved',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/SRT_Class_120000.jpg?width=1000',
+                imageCaption: '수서발 고속철도(SRT) 120000호대 차량 실물 외관',
+                routes: ['수서고속철도 경부선 (수서~부산)', '수서고속철도 호남선 (수서~목포)', '수서발 전라/동해/경전선'],
+                stations: '수서, 동탄, 평택지제, 천안아산, 오송, 대전, 김천구미, 서대구, 동대구, 경주, 울산, 부산, 포항, 밀양, 진영, 창원중앙, 창원, 마산, 진주, 공주, 익산, 정읍, 광주송정, 나주, 목포, 전주, 남원, 곡성, 구례구, 순천, 여천, 여수엑스포',
+                features: [
+                    '국내 최장 대심도 터널인 율현터널(50.3km)을 통과하는 수서평택고속선 전용 운행',
+                    '전 좌석 전원 콘센트 설치 및 인체공학적 슬림 시트로 레그룸 확대',
+                    '관절대차 기반의 안정적인 고속 주행과 자줏빛·흰색 투톤 전용 도색',
+                    '동탄역 지하 고속철도 승강장 정차'
+                ],
+                story: '(주)SR이 운영하는 수서발 고속열차로, 서울 강남권과 경기 동남부(성남·용인·화성·평택) 주민들의 고속철도 접근성을 획기적으로 높였습니다.'
+            },
+            {
+                id: 'gtx-a',
+                name: 'GTX-A (수도권 광역급행철도)',
+                subName: '지하 50m 대심도를 180km/h로 주파하는 차세대 광역급행전철',
+                category: 'highspeed',
+                catLabel: '광역급행철도',
+                catBadgeClass: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
+                powerType: '동력분산식 (8량 1편성)',
+                introYear: '2024년 3월',
+                maxSpeed: '198 km/h',
+                opSpeed: '180 km/h',
+                capacity: '1,090석 (좌석+입석, 8량)',
+                manufacturer: '현대로템 (SG레일 / 코레일 A000호대)',
+                gradientTheme: 'from-teal-950 via-slate-900 to-emerald-950',
+                accentColor: '#14b8a6',
+                svgPreset: 'bullet-sharp',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/GTX-A_Class_A702.jpg?width=1000',
+                imageCaption: '수도권 광역급행철도 GTX-A 전동차 (A000호대) 실물 외관',
+                routes: ['GTX-A 노선 (운정중앙 ~ 킨텍스 ~ 대곡 ~ 연신내 ~ 서울역 ~ 수서 ~ 성남 ~ 구성 ~ 동탄)'],
+                stations: '운정중앙, 킨텍스, 대곡, 연신내, 서울역, 수서, 성남, 구성, 동탄',
+                features: [
+                    '일반 도시철도(80km/h)의 2배 이상인 최고 180km/h 초고속 통근 전동차',
+                    '기밀(여압) 차체 구조 및 단선형 고속 포켓 슬라이딩 도어를 적용해 터널 풍압·이명 현상 억제',
+                    '통근형 전동차임에도 2인 단위 벤치형 시트와 좌석 간 팔걸이 분리대 설치',
+                    '수서~동탄 20분, 운정중앙~서울역 21분 만에 주파'
+                ],
+                story: '수도권 외곽과 서울 도심을 20분대로 연결하는 GTX 시대의 첫 번째 노선 차량입니다. 일반 지하철과 KTX의 장점을 결합한 독특한 스펙을 자랑합니다.'
+            },
+            {
+                id: 'itx-maum',
+                name: 'ITX-마음 (EMU-150)',
+                subName: '노후 무궁화호와 새마을호를 대체하는 차세대 간선 동력분산식 열차',
+                category: 'intercity',
+                catLabel: '간선특급',
+                catBadgeClass: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+                powerType: '동력분산식 (EMU-150)',
+                introYear: '2023년 9월',
+                maxSpeed: '165 km/h',
+                opSpeed: '150 km/h',
+                capacity: '264석 (4량) / 392석 (6량)',
+                manufacturer: '다원시스 / 현대로템',
+                gradientTheme: 'from-red-950 via-slate-900 to-rose-950',
+                accentColor: '#f43f5e',
+                svgPreset: 'square-modern',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/ITXMAUM.jpg?width=1000',
+                imageCaption: '차세대 신형 간선 동력분산식 열차 ITX-마음 (EMU-150)',
+                routes: ['경부선 (서울~수원~천안~대전~동대구~부산)', '호남/전라선 (용산~익산~목포/여수)', '태백/영동선 (청량리~제천~태백~동해)', '중앙선/동해선/서해선'],
+                stations: '서울, 용산, 영등포, 수원, 평택, 천안, 조치원, 대전, 영동, 김천, 구미, 대구, 동대구, 경산, 청도, 밀양, 삼랑진, 물금, 구포, 부산, 청량리, 양평, 원주, 제천, 영월, 민둥산, 사북, 고한, 태백, 철암, 도계, 동해, 묵호, 정동진, 강릉, 익산, 김제, 정읍, 장성, 광주송정, 나주, 목포, 전주, 남원, 순천, 여천, 여수엑스포, 홍성, 서화성',
+                features: [
+                    '객차 하부에 추진 장치를 분산 배치해 가감속력이 뛰어나 정차역이 많은 간선 노선에 최적화',
+                    '저상홈·고상홈 겸용 자동 발판 승강문 장착',
+                    '전 좌석 220V 콘센트·USB 포트·독서등·무선 인터넷(Wi-Fi) 기본 제공',
+                    '4량 또는 6량 기본 편성 및 중련(8량/12량) 운행 가능'
+                ],
+                story: '국민 공모를 통해 "여행의 설레는 마음"이라는 뜻으로 명명된 차세대 일반 간선열차입니다. 경부선부터 태백선·영동선까지 전국 주요 노선으로 빠르게 확대되고 있습니다.'
+            },
+            {
+                id: 'itx-cheongchun',
+                name: 'ITX-청춘 (국내 유일 2층 열차)',
+                subName: '경춘선 호반의 낭만을 달리는 대한민국 유일의 2층 좌석형 급행열차',
+                category: 'intercity',
+                catLabel: '준고속/특급',
+                catBadgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+                powerType: '동력분산식 (8량 1편성, 2층 객차 2량)',
+                introYear: '2012년 2월',
+                maxSpeed: '180 km/h',
+                opSpeed: '180 km/h',
+                capacity: '396석 (2층 객차 포함 8량)',
+                manufacturer: '현대로템 (368000호대)',
+                gradientTheme: 'from-emerald-950 via-slate-900 to-teal-950',
+                accentColor: '#10b981',
+                svgPreset: 'square-modern',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/ITX_Cheongchun_in_Sindorim.jpg?width=1000',
+                imageCaption: '국내 유일 2층 객차를 보유한 경춘선 특급열차 ITX-청춘',
+                routes: ['경춘선 (용산/청량리 ~ 평내호평 ~ 가평 ~ 강촌 ~ 남춘천 ~ 춘천)'],
+                stations: '용산, 옥수, 왕십리, 청량리, 상봉, 퇴계원, 사릉, 평내호평, 마석, 청평, 가평, 강촌, 남춘천, 춘천',
+                features: [
+                    '국내 여객열차 중 유일하게 4·5호차에 2층 객실(더블데커)을 편성한 독보적 구조',
+                    '경의·중앙선 및 경춘선 전철 선로를 공유하면서 일반 전동차를 추월하는 최고 180km/h 주행',
+                    '북한강과 청평호 풍경을 높은 시야에서 조망할 수 있는 2층 창가 좌석 인기',
+                    '자전거 거치 공간 및 휠체어 전용석 완비'
+                ],
+                story: 'MT와 나들이의 성지 경춘선을 대표하는 간판 열차입니다. 2층 객차의 2층 좌석은 예매 오픈과 동시에 매진될 정도로 인기가 높습니다.'
+            },
+            {
+                id: 'itx-saemaeul',
+                name: 'ITX-새마을 (210000호대)',
+                subName: '새마을호의 명맥을 잇는 간선 특급 전기동차',
+                category: 'intercity',
+                catLabel: '간선특급',
+                catBadgeClass: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
+                powerType: '동력분산식 (6량 1편성)',
+                introYear: '2014년 5월',
+                maxSpeed: '165 km/h',
+                opSpeed: '150 km/h',
+                capacity: '376석 (6량 1편성)',
+                manufacturer: '현대로템',
+                gradientTheme: 'from-teal-950 via-slate-900 to-slate-950',
+                accentColor: '#14b8a6',
+                svgPreset: 'square-modern',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Q13707875_ITX-Saemaeul_A01.jpeg?width=1000',
+                imageCaption: '간선 특급열차 ITX-새마을 (210000호대) 실물 외관',
+                routes: ['경부선 (서울~수원~천안~대전~동대구~부산)', '호남선 (용산~익산~목포)', '전라선 (용산~여수)', '장항선 (용산~홍성~익산)', '경전선 (서울~진주)'],
+                stations: '서울, 영등포, 수원, 평택, 천안, 조치원, 대전, 영동, 김천, 구미, 대구, 동대구, 경산, 청도, 밀양, 삼랑진, 물금, 구포, 부산, 진영, 창원중앙, 창원, 마산, 함안, 진주, 용산, 서대전, 계룡, 논산, 익산, 김제, 정읍, 장성, 광주송정, 나주, 목포, 전주, 남원, 곡성, 구례구, 순천, 여천, 여수엑스포, 아산, 온양온천, 신례원, 예산, 삽교, 홍성, 광천, 대천, 웅천, 판교, 서천, 장항, 군산, 대야',
+                features: [
+                    '기존 디젤 PP 새마을호를 대체하기 위해 도입된 간선 전기동차(EMU)',
+                    '붉은색·검은색 강렬한 전면부 디자인과 넓은 좌석 간격(980mm)',
+                    '무궁화호보다 정차역이 적어 일반선 구간에서 쾌적하고 빠른 이동 제공',
+                    '경부선·호남선·전라선·장항선 등 주요 간선 전철화 구간 폭넓게 운행'
+                ],
+                story: '새마을호 브랜드의 정통성을 계승한 열차로, KTX가 정차하지 않는 구미, 천안, 영등포, 홍성, 대천 등 주요 거점 도시를 빠르게 연결합니다.'
+            },
+            {
+                id: 'mugunghwa',
+                name: '무궁화호 (대한민국 대표 일반열차)',
+                subName: '경부·호남선부터 태백선·영동선 산골 간이역까지 누비는 서민의 발',
+                category: 'regional',
+                catLabel: '일반열차',
+                catBadgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                powerType: '기관차 견인 객차형 (디젤/전기기관차 + 리미트/해태/대우 객차)',
+                introYear: '1984년 1월',
+                maxSpeed: '150 km/h',
+                opSpeed: '110~130 km/h',
+                capacity: '객차 1량당 64~72석 (보통 4~8량 편성)',
+                manufacturer: '대우중공업 / 현대정공 / 한진중공업',
+                gradientTheme: 'from-amber-950 via-slate-900 to-orange-950',
+                accentColor: '#f59e0b',
+                svgPreset: 'classic-loco',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Mugunghwa-ho.jpg?width=1000',
+                imageCaption: '전국 방방곡곡과 태백선·영동선을 잇는 무궁화호 열차',
+                routes: [
+                    '태백선 (청량리~제천~영월~민둥산~사북~고한~태백~철암)',
+                    '영동선 (영주~봉화~춘양~분천~승부~철암~도계~동해~묵호~정동진~강릉)',
+                    '경부선 (서울~수원~천안~대전~구미~동대구~밀양~구포~부산)',
+                    '호남/전라선 (용산~서대전~익산~광주/목포/전주/순천/여수)',
+                    '충북선 (대전~청주~증평~음성~충주~제천)',
+                    '장항선 (용산~천안~온양온천~예산~홍성~대천~장항~군산~익산)',
+                    '경전/동해선 (부전~마산~진주~순천 / 부전~포항)'
+                ],
+                stations: '서울, 용산, 영등포, 안양, 수원, 오산, 서정리, 평택, 성환, 천안, 전의, 조치원, 부강, 신탄진, 대전, 옥천, 이원, 지탄, 심천, 각계, 영동, 황간, 추풍령, 김천, 구미, 사곡, 약목, 왜관, 신동, 대구, 동대구, 경산, 남성현, 청도, 상동, 밀양, 삼랑진, 원동, 물금, 화명, 구포, 사상, 부산, 청량리, 덕소, 양평, 용문, 지평, 석불, 일신, 매곡, 양동, 삼산, 서원주, 원주, 제천, 쌍용, 영월, 예미, 민둥산, 사북, 고한, 추전, 태백, 동백산, 철암, 석포, 승부, 양원, 분천, 현동, 임기, 춘양, 법전, 봉화, 영주, 신기, 도계, 동해, 묵호, 정동진, 강릉, 서대전, 계룡, 연산, 논산, 강경, 함열, 익산, 김제, 신태인, 정읍, 백양사, 장성, 광주송정, 광주, 나주, 다시, 함평, 무안, 일로, 임성리, 목포, 삼례, 전주, 임실, 오수, 남원, 곡성, 구례구, 순천, 여천, 여수엑스포, 청주, 오근장, 청주공항, 증평, 음성, 주덕, 충주, 삼탄, 아산, 온양온천, 도고온천, 신례원, 예산, 삽교, 화성, 홍성, 광천, 청소, 대천, 웅천, 판교, 서천, 장항, 군산, 대야, 부전, 센텀, 신해운대, 기장, 남창, 태화강, 경주, 포항, 진영, 창원중앙, 창원, 마산, 중리, 함안, 군북, 반성, 진주, 완사, 북천, 횡천, 하동, 진상, 광양, 벌교, 조성, 예당, 득량, 보성, 명봉, 이양, 능주, 화순, 효천, 서광주',
+                features: [
+                    '전철화되지 않은 비전철 구간(디젤기관차 견인)과 전철 구간(전기기관차 견인) 모두 운행 가능한 만능 구조',
+                    '태백선(추전역·태백역·철암역) 및 영동선(분천역·승부역) 등 백두대간 협곡 오지 역을 지키는 핵심 여객열차',
+                    '객차 내 카페차(일부 편성) 및 넓은 선반, 수동/자동 출입문의 정겨운 감성',
+                    '입석 및 정기승차권, 내일로 패스 이용객들에게 가장 친숙한 대한민국 대표 등급'
+                ],
+                story: '1984년 등급 개편 이후 40년 넘게 대한민국 철도의 허리를 지탱해온 국민 열차입니다. 화려한 고속열차가 닿지 못하는 태백선·영동선의 작은 역들까지 멈춰 서며 지역 주민과 여행자들의 발이 되어주고 있습니다.'
+            },
+            {
+                id: 'nuriro',
+                name: '누리로 (200000호대 간선 전기동차)',
+                subName: '영동선 해안·산악 구간과 충북선을 달리는 중거리 간선 전기동차',
+                category: 'regional',
+                catLabel: '일반/중거리',
+                catBadgeClass: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+                powerType: '동력분산식 (4량 1편성)',
+                introYear: '2009년 6월',
+                maxSpeed: '150 km/h',
+                opSpeed: '150 km/h',
+                capacity: '263석 (4량 1편성)',
+                manufacturer: '히타치 제작소 (Hitachi)',
+                gradientTheme: 'from-yellow-950 via-slate-900 to-slate-950',
+                accentColor: '#eab308',
+                svgPreset: 'square-modern',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Korail_200451_Nuriro_at_Jeongdongjin_Station_20230430.jpg?width=1000',
+                imageCaption: '정동진역에 정차 중인 누리로 (200000호대) 간선 전기동차',
+                routes: ['영동선/태백선 (청량리~제천~영월~민둥산~태백~철암~동해~강릉)', '충북선 (대전~청주~충주~제천)', '동해선/경부선 일부 구간'],
+                stations: '청량리, 양평, 원주, 제천, 영월, 민둥산, 사북, 고한, 태백, 철암, 도계, 동해, 묵호, 정동진, 강릉, 대전, 신탄진, 조치원, 오송, 청주, 청주공항, 증평, 음성, 충주',
+                features: [
+                    '무궁화호 등급 운임으로 이용 가능하면서도 신형 전동차급 정숙성과 쾌적함 제공',
+                    '저상홈/고상홈 모두 승하차 가능한 가변형 스텝 도어 탑재',
+                    '4량 편성으로 수요가 알맞은 영동선(동해~강릉 셔틀) 및 충북선에서 맹활약',
+                    '일부 편성은 개조되어 동해산타열차 등 관광열차로도 활약'
+                ],
+                story: '원래 수도권과 충청권을 잇는 급행열차로 데뷔했으나, 현재는 정동진·동해·강릉을 오가는 영동선 바다 풍경 노선과 충북선의 알짜 열차로 사랑받고 있습니다.'
+            },
+            {
+                id: 'loco-7400',
+                name: '7400호대 디젤기관차 (GT26CW-2)',
+                subName: '대한민국 철도를 지탱해온 영원한 베스트셀러 "특대형 디젤기관차"',
+                category: 'locomotive',
+                catLabel: '디젤기관차',
+                catBadgeClass: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+                powerType: '디젤-전기 기관차 (3,000마력)',
+                introYear: '1997년~',
+                maxSpeed: '150 km/h',
+                opSpeed: '120~135 km/h',
+                capacity: '견인 전용 (무궁화/관광/화물 객차 견인)',
+                manufacturer: '현대정공 / EMD (GM)',
+                gradientTheme: 'from-orange-950 via-slate-900 to-amber-950',
+                accentColor: '#f97316',
+                svgPreset: 'classic-loco',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/KORAIL_DL7400.jpg?width=1000',
+                imageCaption: '한국철도공사 7400호대 특대형 디젤전기기관차 실물 외관',
+                routes: ['경부선', '호남선', '전라선', '태백선', '영동선', '장항선', '경전선', '중앙선 등 전국 전 노선'],
+                stations: '전철화 및 비전철화 구분 없이 대한민국 모든 철도 선로 진입 가능 (무궁화호, 해랑, V-Train, S-Train, 화물열차 견인)',
+                features: [
+                    '전차선(전기 공급선)이 없는 비전철 노선까지 어디든 달릴 수 있는 전천후 동력원',
+                    '미국 EMD사 16-645E3C 디젤엔진 탑재로 3,000마력의 웅장한 엔진음과 견인력 발휘',
+                    '총 84량이 도입되어 7300호대와 함께 한국 철도 디젤기관차의 황금기를 이끈 주역',
+                    '레일크루즈 해랑, S-Train 등 전용 도색 기관차로도 변신해 운행'
+                ],
+                story: '한국 철도에서 "특대형 기관차"라 불리는 전설적인 기종입니다. 묵직한 디젤 엔진 소리와 함께 무궁화호부터 럭셔리 관광열차까지 끌고 전국을 누비는 만능 일꾼입니다.'
+            },
+            {
+                id: 'loco-8200',
+                name: '8200호대 전기기관차',
+                subName: '전철화 간선 여객열차(무궁화호·ITX-새마을 객차형)의 주력 견인기',
+                category: 'locomotive',
+                catLabel: '전기기관차',
+                catBadgeClass: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
+                powerType: '교류 25,000V 전기기관차 (5,200kW / 약 7,000마력)',
+                introYear: '2003년~',
+                maxSpeed: '150 km/h',
+                opSpeed: '130~150 km/h',
+                capacity: '여객·화물 겸용 (HEP 발전장치 탑재)',
+                manufacturer: '지멘스 (Siemens) / 현대로템',
+                gradientTheme: 'from-sky-950 via-slate-900 to-blue-950',
+                accentColor: '#0ea5e9',
+                svgPreset: 'square-modern',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/%EB%AC%B4%EA%B6%81%ED%99%94%ED%98%B8_%EA%B2%B8_%EC%83%88%EB%A7%88%EC%9D%84%ED%98%B8_%EC%A0%84%EB%8B%B4_8200%ED%98%B8%EB%8C%80_%EC%99%80_7400%ED%98%B8%EB%8C%80.jpg?width=1000',
+                imageCaption: '간선 여객 전담 8200호대 전기기관차 실물 외관',
+                routes: ['경부선', '호남선', '전라선', '중앙선', '태백선', '영동선', '충북선'],
+                stations: '전철화가 완료된 전국 주요 간선 및 태백·영동선 구간 여객열차 견인',
+                features: [
+                    '독일 지멘스(Siemens) 유로스프린터(EuroSprinter) 플랫폼 기반의 고성능 여객 전용 전기기관차',
+                    '객차 전원 공급장치(HEP)를 내장해 별도의 디젤 발전차 없이도 무궁화호 객차 냉난방·조명 공급 가능',
+                    '디젤기관차 대비 압도적인 가속력과 저소음·친환경 주행 성능',
+                    '강원도 태백선·영동선 전철화 구간에서도 무궁화호를 힘차게 견인'
+                ],
+                story: '한국 간선철도 전철화 시대를 연 주역으로, 특히 발전차 없이 객차만 연결해 달리는 모습을 보면 8200호대 전기기관차임을 단번에 알 수 있습니다.'
+            },
+            {
+                id: 'loco-8500',
+                name: '8500호대 대형 전기기관차',
+                subName: '백두대간 산악 경사지와 중화물 수송을 제패하는 8,800마력 괴물 기관차',
+                category: 'locomotive',
+                catLabel: '전기기관차',
+                catBadgeClass: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+                powerType: '교류 25,000V 대형 전기기관차 (6,600kW / 약 8,850마력)',
+                introYear: '2012년~',
+                maxSpeed: '150 km/h',
+                opSpeed: '110~120 km/h',
+                capacity: '대형 중화물 수송 특화 (6축 Co-Co 배열)',
+                manufacturer: '현대로템',
+                gradientTheme: 'from-blue-950 via-slate-900 to-slate-950',
+                accentColor: '#2563eb',
+                svgPreset: 'square-modern',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Korail_Class_8500_Locomotive.jpg?width=1000',
+                imageCaption: '산악·화물 수송 주력 8500호대 대형 전기기관차 실물 외관',
+                routes: ['중앙선', '태백선', '영동선', '충북선', '경부선'],
+                stations: '제천, 영월, 태백, 철암, 도계, 동해, 충주, 의왕 등 주요 산업·화물 물류 거점',
+                features: [
+                    '구형 8000호대 알스톰 전기기관차를 대체하기 위해 국내 기술로 개발한 대형 6축 전기기관차',
+                    '6,600kW(약 8,850마력)의 막강한 출력으로 시멘트·석탄·컨테이너 장대 화물열차를 단독 견인',
+                    '급경사와 급곡선이 연속되는 태백선·영동선 산악 구간에서 탁월한 점착력 발휘',
+                    '회생제동 시스템 탑재로 긴 내리막 구간에서도 안정적인 제동과 전력 회수 실현'
+                ],
+                story: '대한민국 산업 물류의 대동맥인 태백선·중앙선·충북선을 책임지는 현역 최강급 힘의 상징입니다.'
+            },
+            {
+                id: 'loco-8000',
+                name: '전설의 8000호대 알스톰 전기기관차',
+                subName: '1970~2010년대 태백선·영동선 산업선을 지킨 주황색 산악 명차',
+                category: 'locomotive',
+                catLabel: '전설의 기관차',
+                catBadgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                powerType: '교류 25,000V 사이리스터 전기기관차 (3,900kW)',
+                introYear: '1972년 (퇴역 완료)',
+                maxSpeed: '85 km/h',
+                opSpeed: '65~80 km/h',
+                capacity: '산악 산업선 중화물·여객 견인 (B-B-B 3대차 구조)',
+                manufacturer: '알스톰 (50Hz 그룹) / 대우중공업',
+                gradientTheme: 'from-amber-950 via-slate-900 to-orange-950',
+                accentColor: '#f59e0b',
+                svgPreset: 'classic-loco',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/KORAIL_EL8000.jpg?width=1000',
+                imageCaption: '백두대간 산악 산업선을 누빈 전설의 8000호대 알스톰 전기기관차',
+                routes: ['태백선 (제천~영월~태백~철암)', '영동선 (영주~분천~동해)', '중앙선'],
+                stations: '청량리, 제천, 영월, 태백, 철암, 영주, 분천, 도계, 동해',
+                features: [
+                    '대한민국 철도 최초의 전기기관차이자 1973년 중앙선·태백선 전철화 개통의 상징',
+                    '급곡선 산악 선로 통과를 위해 대차 3개(2축×3 = B-B-B)를 장착한 독특한 하부 구조',
+                    '속도(85km/h)보다 산악 오르막 견인력에 모든 설계를 집중한 산악 전문가',
+                    '퇴역 후에도 8001호·8091호 등이 철도문화재로 지정되어 보존 중'
+                ],
+                story: '1970~80년대 대한민국 경제개발의 원동력이었던 강원도 석탄과 시멘트를 백두대간 너머로 실어 나른 전설의 "주황색 마징가" 기관차입니다.'
+            },
+            {
+                id: 'loco-mika',
+                name: '미카형 증기기관차 (Mika 3)',
+                subName: '근현대사 대한민국 철도를 누비던 추억의 칙칙폭폭 증기기관차',
+                category: 'locomotive',
+                catLabel: '증기기관차',
+                catBadgeClass: 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30',
+                powerType: '석탄·중유 보일러 증기기관 (2-8-2 차륜배열)',
+                introYear: '1919년~1967년 운행',
+                maxSpeed: '85 km/h',
+                opSpeed: '50~70 km/h',
+                capacity: '여객·화물 견인 전용',
+                manufacturer: '볼드윈 / 경성공장 등',
+                gradientTheme: 'from-slate-950 via-slate-900 to-zinc-950',
+                accentColor: '#71717a',
+                svgPreset: 'classic-loco',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Korean_Railroad_SL_Mika_3_161.jpg?width=1000',
+                imageCaption: '철도박물관에 보존된 미카형 증기기관차 (미카3 161호)',
+                routes: ['경부선', '호남선', '경의선', '중앙선 등 과거 전국 전 노선'],
+                stations: '의왕 철도박물관(미카3-161호), 대전 현충원(미카3-129호), 곡성 섬진강기차마을 등 실물 전시 중',
+                features: [
+                    '선륜 1축 + 동륜 4축 + 종륜 1축(2-8-2 미카도형)의 웅장한 증기기관차 구조',
+                    '하얀 수증기와 검은 석탄 연기를 내뿜으며 한국 근현대사 여객·화물 수송 담당',
+                    '미카3형 129호는 한국전쟁 당시 피난민과 군수물자를 수송한 호국철도 기념물로 보존',
+                    '현재 의왕 철도박물관 및 전국 주요 철도 공원에서 실물 관람 가능'
+                ],
+                story: '대한민국 철도 역사의 살아있는 화석입니다. 기적 소리와 피스톤의 웅장한 움직임은 지금도 세대를 넘어 철도 낭만의 원형으로 기억됩니다.'
+            },
+            {
+                id: 'haerang',
+                name: '레일크루즈 해랑 (Rail Cruise Haerang)',
+                subName: '침대·샤워실·와인 라운지를 갖춘 대한민국 유일 5성급 레일 호텔',
+                category: 'tourist',
+                catLabel: '럭셔리 크루즈',
+                catBadgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                powerType: '전용 개조 객차형 (디젤/전기기관차 견인, 8량)',
+                introYear: '2008년 11월',
+                maxSpeed: '130 km/h',
+                opSpeed: '80~110 km/h',
+                capacity: '최대 54명 (스위트·디럭스·패밀리 객실)',
+                manufacturer: '코레일관광개발 (현대정공 객차 전면 리뉴얼)',
+                gradientTheme: 'from-amber-950 via-slate-900 to-yellow-950',
+                accentColor: '#f59e0b',
+                svgPreset: 'classic-loco',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Rail_Cruise_Haerang.jpg?width=1000',
+                imageCaption: '대한민국 유일 5성급 레일 크루즈 해랑 전용 열차',
+                routes: ['전국 일주 2박 3일 코스', '동부권 1박 2일 코스', '서부권 1박 2일 코스'],
+                stations: '서울, 순천, 부산, 경주, 정동진, 태백, 제천, 전주, 광주 등 전국 명소 순환',
+                features: [
+                    '전 객실 내 개별 침대, 샤워부스, 화장실, 에어컨을 완비한 "달리는 특급 호텔"',
+                    '식당차(오로라)와 전망 라운지(선라이즈)에서 최고급 셰프 식사 및 와인·다과 무제한 제공',
+                    '전담 승무원의 1:1 밀착 케어 및 정차 도시별 전용 리무진 버스 연계 투어',
+                    '"해(태양)와 함께 금수강산을 유람한다"는 뜻의 깊은 로열 블루 외관 도색'
+                ],
+                story: '유럽의 오리엔트 특급열차를 모티브로 탄생한 국내 최고급 호텔식 관광열차입니다. 기차 안에서 숙박하며 전국 팔도를 유람하는 특별한 경험을 선사합니다.'
+            },
+            {
+                id: 'v-train',
+                name: '백두대간 협곡열차 (V-Train)',
+                subName: '분천~승부~철암 백두대간 비경 협곡을 달리는 아기백호 관광열차',
+                category: 'tourist',
+                catLabel: '관광열차',
+                catBadgeClass: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+                powerType: '전용 디젤기관차 견인 개방형 객차 (3량)',
+                introYear: '2013년 4월',
+                maxSpeed: '100 km/h',
+                opSpeed: '30~60 km/h (절경 서행)',
+                capacity: '158석 (3량 1편성)',
+                manufacturer: '코레일 (새마을호 객차 개조)',
+                gradientTheme: 'from-rose-950 via-slate-900 to-red-950',
+                accentColor: '#f43f5e',
+                svgPreset: 'retro-vtrain',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Front_of_V-train.JPG?width=1000',
+                imageCaption: '백두대간 협곡열차 (V-Train) 아기백호 테마 기관차 및 객차',
+                routes: ['영동/태백선 협곡 구간 (영주 ~ 봉화 ~ 춘양 ~ 분천 ~ 양원 ~ 승부 ~ 철암)'],
+                stations: '영주, 봉화, 춘양, 분천(산타마을), 비동(임시), 양원(국내 최초 민자역), 승부, 철암',
+                features: [
+                    '천장을 제외한 좌우 벽면 전체를 통유리로 개방해 협곡 절벽과 낙동강 상류를 파노라마로 감상',
+                    '승부역·양원역 등 도로가 닿지 않는 대한민국 최고 오지 간이역 정차',
+                    '목탄 난로 인테리어, 천장 조개탄 디자인, 직접 열 수 있는 개폐식 창문 적용',
+                    '구간 평균 시속 30~40km로 서행하며 사진 촬영과 풍경 감상 최적화'
+                ],
+                story: '협곡(Valley)의 V에서 이름을 딴 백두대간 대표 관광열차입니다. 특히 눈 내리는 겨울철 분천 산타마을~철암 구간은 국내 최고의 설국 기차여행 코스로 손꼽힙니다.'
+            },
+            {
+                id: 'g-train',
+                name: '서해금빛열차 (G-Train)',
+                subName: '세계 최초 한옥식 온돌마루실과 족욕 카페를 품은 서해안 관광열차',
+                category: 'tourist',
+                catLabel: '관광열차',
+                catBadgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                powerType: '기관차 견인 전용 객차 (5량)',
+                introYear: '2015년 2월',
+                maxSpeed: '130 km/h',
+                opSpeed: '90~110 km/h',
+                capacity: '254석 (온돌마루 9실 포함)',
+                manufacturer: '코레일 (무궁화호 객차 개조)',
+                gradientTheme: 'from-amber-950 via-slate-900 to-yellow-950',
+                accentColor: '#eab308',
+                svgPreset: 'classic-loco',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/West_Gold_Train_09.jpg?width=1000',
+                imageCaption: '세계 최초 온돌마루실 보유 서해금빛열차 (G-Train) 전용 기관차 및 객차',
+                routes: ['장항선 (용산 ~ 영등포 ~ 수원 ~ 아산 ~ 온양온천 ~ 예산 ~ 홍성 ~ 광천 ~ 대천 ~ 장항 ~ 군산 ~ 익산)'],
+                stations: '용산, 영등포, 수원, 아산, 온양온천, 예산, 홍성, 광천, 대천, 장항, 군산, 익산',
+                features: [
+                    '세계 최초 열차 내 한옥식 "온돌마루실"(9실) 탑재로 신발을 벗고 편히 누워 여행 가능',
+                    '창밖 서해 낙조와 들녘을 바라보며 즐기는 차내 건식·습식 "족욕 카페" 운영',
+                    '아산 온양온천, 예산 수덕사, 홍성 남당항, 대천해수욕장, 군산 근대역사거리 등 서해 7대 명소 연결',
+                    '금빛 햇살을 형상화한 황금빛 외관 도색'
+                ],
+                story: '가족 단위 여행객에게 압도적인 사랑을 받는 장항선 간판 관광열차입니다. 온돌마루실은 예매 경쟁이 치열할 만큼 독창적인 K-철도 문화를 보여줍니다.'
+            },
+            {
+                id: 'a-train',
+                name: '정선아리랑열차 (A-Train)',
+                subName: '정선 5일장과 아우라지 계곡을 잇는 통유리 전망 관광열차',
+                category: 'tourist',
+                catLabel: '관광열차',
+                catBadgeClass: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+                powerType: '기관차 견인 전용 개조 객차 (4량)',
+                introYear: '2015년 1월',
+                maxSpeed: '130 km/h',
+                opSpeed: '70~100 km/h',
+                capacity: '200석 (4량 1편성)',
+                manufacturer: '코레일',
+                gradientTheme: 'from-purple-950 via-slate-900 to-indigo-950',
+                accentColor: '#c084fc',
+                svgPreset: 'square-modern',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/A-Train_(Korail),_Jeongseon_Arirang_Train,_2015.jpg?width=1000',
+                imageCaption: '정선 아리랑의 고장을 달리는 정선아리랑열차 (A-Train)',
+                routes: ['정선선/태백선 (청량리 ~ 원주 ~ 제천 ~ 영월 ~ 민둥산 ~ 별어곡 ~ 선평 ~ 정선 ~ 나전 ~ 아우라지)'],
+                stations: '청량리, 양평, 원주, 제천, 영월, 예미, 민둥산, 별어곡, 선평, 정선, 나전, 아우라지',
+                features: [
+                    '일반 열차 대비 대폭 확장된 대형 통유리 창문으로 강원도 산악 계곡 조망 극대화',
+                    '선두·후미 전망 라운지(스카이 전망석)와 차내 스토리텔링·공연 이벤트 공간 완비',
+                    '정선 5일장(매월 2·7일) 장날에 맞춰 당일치기 기차여행 코스로 인기',
+                    '정선선 단선 산악 지선을 완주하는 유일한 특화 관광열차'
+                ],
+                story: '아리랑(Arirang)과 경탄(Amazing)의 A를 따서 지어진 열차로, 민둥산역에서 분기해 아우라지까지 이어지는 정선선의 숨은 비경을 온몸으로 느낄 수 있습니다.'
+            },
+            {
+                id: 's-train',
+                name: '남도해양열차 (S-Train)',
+                subName: '남도의 다도해 풍광과 맛의 고장을 누비는 거북선 모티브 관광열차',
+                category: 'tourist',
+                catLabel: '관광열차',
+                catBadgeClass: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+                powerType: '전용 도색 기관차 견인 객차 (5량)',
+                introYear: '2013년 9월',
+                maxSpeed: '130 km/h',
+                opSpeed: '90~110 km/h',
+                capacity: '218석 (5량 1편성)',
+                manufacturer: '코레일',
+                gradientTheme: 'from-blue-950 via-slate-900 to-cyan-950',
+                accentColor: '#60a5fa',
+                svgPreset: 'classic-loco',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/S-TRAIN.JPG?width=1000',
+                imageCaption: '남도의 다도해 풍광을 누비는 남도해양열차 (S-Train)',
+                routes: ['전라선/경전선 (서울/용산 ~ 대전 ~ 익산 ~ 전주 ~ 남원 ~ 순천 ~ 여수 / 부산 ~ 마산 ~ 진주 ~ 하동 ~ 순천 ~ 광주송정)'],
+                stations: '서울, 용산, 영등포, 수원, 천안, 서대전, 논산, 익산, 전주, 남원, 곡성, 구례구, 순천, 여천, 여수엑스포, 부산, 구포, 물금, 진영, 창원중앙, 마산, 진주, 북천, 하동, 득량, 보성, 화순, 광주송정',
+                features: [
+                    '쪽빛 남해 바다와 이순신 장군 거북선을 형상화한 웅장한 외관 디자인',
+                    '좌식 다례실(다도 체험 공간), 힐링실, 가족실, 이벤트 카페차 등 테마별 객실 구성',
+                    '경전선과 전라선을 넘나들며 보성 녹차밭, 하동 재첩거리, 순천만, 여수 밤바다 연결',
+                    '전용 도색 기관차가 견인하는 일체형 편성미'
+                ],
+                story: '남해안(South Sea)의 S를 상징하며, 남도의 구수한 인심과 푸른 바다, 기차 안 다례 체험이 어우러진 낭만 열차입니다.'
+            },
+            {
+                id: 'santa-train',
+                name: '동해산타열차',
+                subName: '강릉 정동진 해안선과 분천 산타마을을 1년 내내 잇는 산타 특급',
+                category: 'tourist',
+                catLabel: '관광열차',
+                catBadgeClass: 'bg-red-500/20 text-red-300 border-red-500/30',
+                powerType: '동력분산식 개조 전기동차 (200000호대 누리로 개조, 4량)',
+                introYear: '2020년 8월',
+                maxSpeed: '150 km/h',
+                opSpeed: '60~100 km/h',
+                capacity: '176석 (4량 1편성)',
+                manufacturer: '코레일 (히타치 누리로 개조)',
+                gradientTheme: 'from-red-950 via-slate-900 to-rose-950',
+                accentColor: '#ef4444',
+                svgPreset: 'square-modern',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Korail_200451_Nuriro_at_Jeongdongjin_Station_20230430.jpg?width=1000',
+                imageCaption: '동해 해안선과 분천 산타마을을 잇는 동해산타열차 (누리로 개조)',
+                routes: ['영동선 (강릉 ~ 정동진 ~ 묵호 ~ 동해 ~ 신기 ~ 도계 ~ 철암 ~ 승부 ~ 양원 ~ 분천)'],
+                stations: '강릉, 정동진, 묵호, 동해, 신기, 도계, 동백산, 철암, 석포, 승부, 양원, 분천(산타마을)',
+                features: [
+                    '1년 365일 크리스마스 분위기를 만끽할 수 있는 산타클로스·루돌프 테마 래핑 및 실내 장식',
+                    '동해의 푸른 해안선(강릉~동해)과 백두대간 심산유곡(도계~철암~분천)을 한 번에 종주',
+                    '가족 전망석, 커플석, 스낵바 카페 공간 운영',
+                    '누리로 전기동차를 기반으로 개조되어 정숙하고 쾌적한 승차감 제공'
+                ],
+                story: '봉화 분천역 산타마을과 강릉·정동진 바다를 하나로 연결하며 사계절 내내 동화 같은 기차여행을 선사하는 열차입니다.'
+            },
+            {
+                id: 'sea-train',
+                name: '동해 바다열차 (Sea Train)',
+                subName: '전 좌석이 동해 바다를 향해 배치된 해안선 절경 전용 열차',
+                category: 'tourist',
+                catLabel: '해안관광열차',
+                catBadgeClass: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+                powerType: '전용 개조 디젤동차 (9501호대 기반)',
+                introYear: '2007년 7월 (리뉴얼 운행)',
+                maxSpeed: '110 km/h',
+                opSpeed: '50~70 km/h',
+                capacity: '130여 석 (특실·일반실·프러포즈실)',
+                manufacturer: '코레일관광개발',
+                gradientTheme: 'from-cyan-950 via-slate-900 to-blue-950',
+                accentColor: '#06b6d4',
+                svgPreset: 'square-modern',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Korail_Class_9000_Jeongdongjin.jpg?width=1000',
+                imageCaption: '전 좌석이 동해 바다를 향해 배치된 정동진 바다열차 (Sea Train)',
+                routes: ['동해 해안선 (강릉 ~ 정동진 ~ 묵호 ~ 동해 ~ 추암 ~ 삼척해변)'],
+                stations: '강릉, 정동진, 묵호, 동해, 추암, 삼척해변',
+                features: [
+                    '전 객실 모든 좌석이 진행 방향이 아닌 "동해 바다 정면"을 바라보도록 계단식 배치',
+                    '일반 열차보다 훨씬 크고 시원하게 트인 파노라마 측면 유리창',
+                    '세계에서 바다와 가장 가까운 기차역인 정동진역과 추암 촛대바위 해안선 바로 옆 주행',
+                    '연인들을 위한 프러포즈룸 및 가족 라운지 운영'
+                ],
+                story: '창밖으로 파도가 부서지는 백사장을 코앞에서 보며 달리는 대한민국 해안 관광열차의 원조 격 명물입니다.'
+            },
+            {
+                id: 'saemaeul-pp',
+                name: '전설의 디젤 새마을호 (DHC / PP동차)',
+                subName: 'KTX 개통 이전 대한민국 최고속·최고급 열차의 영원한 레전드',
+                category: 'heritage',
+                catLabel: '전설의 명차',
+                catBadgeClass: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+                powerType: 'Push-Pull 디젤유압식 동차 (전후 동력차 + 중간 객차)',
+                introYear: '1987년~2013년 운행',
+                maxSpeed: '150 km/h',
+                opSpeed: '140 km/h',
+                capacity: '편성당 약 400~600석 (특실·일반실·식당차)',
+                manufacturer: '현대정공 / 대우중공업 / 한진중공업',
+                gradientTheme: 'from-purple-950 via-slate-900 to-indigo-950',
+                accentColor: '#a855f7',
+                svgPreset: 'classic-loco',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Saemaeul-ho.jpg?width=1000',
+                imageCaption: '전설의 유선형 디젤 새마을호 (PP동차) 실물 모습',
+                routes: ['경부선 (서울~부산 4시간 10분)', '호남선 (용산~목포)', '전라선 (용산~여수)', '장항선 (용산~익산)'],
+                stations: '서울, 영등포, 수원, 천안, 대전, 김천, 구미, 동대구, 경주, 포항, 부산, 용산, 익산, 광주, 목포, 전주, 순천, 여수',
+                features: [
+                    '앞뒤에 유선형 디젤동력차(PMC)를 배치한 독특한 푸시-풀(Push-Pull) 구조',
+                    '오늘날의 KTX 특실마저 능가한다고 평가받던 극상의 좌석 간격과 발받침·종아리 받침(레그레스트) 시트',
+                    '초록-노랑-파랑 줄무늬 도색과 격조 높은 정식 식당차(Dining Car) 운영',
+                    '1988 서울올림픽을 앞두고 도입되어 대한민국 철도 고급화의 황금시대를 상징'
+                ],
+                story: '한국 철도 동호인들 사이에서 지금도 "역대 최고의 승차감과 품격"으로 회자되는 전설적인 열차입니다. 2013년 모든 정규 운행을 마치고 역사 속으로 퇴역했습니다.'
+            },
+            {
+                id: 'bidulgi',
+                name: '추억의 비둘기호 (완행열차)',
+                subName: '대한민국 근현대사 전국 간이역을 하나도 빠짐없이 잇던 서민 완행열차',
+                category: 'heritage',
+                catLabel: '추억의 명차',
+                catBadgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+                powerType: '기관차 견인 완행 객차 / 초기 디젤동차 (DC)',
+                introYear: '1984년~2000년 11월 운행',
+                maxSpeed: '95 km/h',
+                opSpeed: '60~80 km/h',
+                capacity: '객차 1량당 80~100석 (직각 고정식 좌석)',
+                manufacturer: '인천공작창 / 대한조선공사 / 대우중공업',
+                gradientTheme: 'from-emerald-950 via-slate-900 to-slate-950',
+                accentColor: '#10b981',
+                svgPreset: 'retro-vtrain',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Korail_Niigata_DMU_1.jpg?width=1000',
+                imageCaption: '추억의 초록·크림 도색 비둘기호 (철도박물관 보존 니가타 디젤동차)',
+                routes: ['경부선, 호남선, 정선선, 영동선, 교외선, 진해선 등 전국 모든 노선 완행'],
+                stations: '전국 대도시역부터 이름 모를 시골 무인 간이역·임시승강장까지 모든 역 정차',
+                features: [
+                    '노선 내 존재하는 모든 간이역에 정차하여 시골 장터 상인과 통학생들의 발이 되어준 최하위 등급 열차',
+                    '에어컨 대신 천장에 달린 회전 선풍기와 손으로 밀어 올리는 개폐식 유리창 장착',
+                    '겨울철 객차 중앙에 설치된 석탄 난로와 주전자, 90도 직각 등받이 시트의 정겨운 풍경',
+                    '2000년 11월 정선선 운행을 마지막으로 대한민국 철도 역사 속으로 영면'
+                ],
+                story: '비록 속도는 느렸지만 가장 낮은 곳에서 가장 많은 서민의 삶과 애환을 실어 나른 따뜻한 열차였습니다. 통일호와 함께 한국 철도 추억의 한 페이지를 장식하고 있습니다.'
+            },
+            {
+                id: 'station-seoul-old',
+                name: '구 서울역 (문화역서울284)',
+                subName: '1925년 건립된 비잔틴·르네상스 절충 양식의 대한민국 철도 심장부',
+                category: 'station',
+                isStation: true,
+                catLabel: '상징적인 역',
+                catBadgeClass: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+                powerType: '사적 제284호 · 근대 철도건축의 백미',
+                introYear: '1925년 9월 준공',
+                maxSpeed: '서울 중구 통일로',
+                opSpeed: '대한민국 철도 0km 기점',
+                capacity: '중앙 돔홀 · 1·2등 대합실 · 귀빈실 보존',
+                manufacturer: '경부선 · 경의선 · KTX/GTX-A 시종착',
+                gradientTheme: 'from-rose-950 via-slate-900 to-amber-950',
+                accentColor: '#f43f5e',
+                svgPreset: 'square-modern',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Old-Seoul-station-20181122-072336.jpg?width=1000',
+                imageCaption: '1925년 건립된 붉은 벽돌과 중앙 돔 지붕의 구 서울역 (문화역서울284)',
+                routes: ['경부고속선 시종착', '경의·중앙선 / 공항철도', 'GTX-A · 수도권 1·4호선 환승'],
+                stations: '현재 역무 기능은 바로 옆 신축 서울역사가 담당하며, 구 역사는 복원 후 복합문화예술공간 "문화역서울284"로 무료 개방 중',
+                features: [
+                    '스위스 루체른역을 모델로 붉은 벽돌과 화강암, 비잔틴풍 돔 지붕을 결합한 국내 최고(最古) 대형 근대 역사',
+                    '중앙홀 천장의 스테인드글라스 채광창과 화강암 기둥, 과거 2층 양식당 그릴 원형 복원',
+                    '한국 근현대사의 수많은 만남과 이별, 피난과 산업화의 애환이 서린 역사적 장소',
+                    '현재 KTX-청룡·KTX-1·ITX-마음·무궁화호 및 GTX-A가 출발하는 대한민국 철도 교통의 핵심 허브'
+                ],
+                story: '서울로7017 고가 보행길에서 바라보는 구 서울역의 붉은 벽돌과 중앙 돔 야경은 서울 도심 최고의 철도 출사 포인트로 손꼽힙니다.'
+            },
+            {
+                id: 'station-jeongdongjin',
+                name: '정동진역 (바다와 가장 가까운 역)',
+                subName: '기네스북에 등재된 세계에서 바다와 가장 가까운 해변 기차역',
+                category: 'station',
+                isStation: true,
+                catLabel: '상징적인 역',
+                catBadgeClass: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+                powerType: '영동선 · 기네스북 세계 최고 해안 근접역',
+                introYear: '1962년 11월 개업',
+                maxSpeed: '강원 강릉시 강동면',
+                opSpeed: '해변 백사장 거리 20m',
+                capacity: '단선 해안 승강장 (소나무 포토존)',
+                manufacturer: 'KTX-이음 · 누리로 · 바다열차 · 산타열차 정차',
+                gradientTheme: 'from-cyan-950 via-slate-900 to-sky-950',
+                accentColor: '#06b6d4',
+                svgPreset: 'bullet-sharp',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Jeongdongjin_station.JPG?width=1000',
+                imageCaption: '푸른 동해 바다와 백사장이 승강장 바로 앞에 펼쳐진 정동진역',
+                routes: ['영동선 (강릉 ~ 정동진 ~ 동해)', '강릉선 KTX-이음 (청량리/서울 ~ 정동진 ~ 동해)'],
+                stations: '승강장에서 내리자마자 푸른 동해 파도와 백사장이 눈앞에 펼쳐지는 대한민국 대표 해맞이 기차역',
+                features: [
+                    '서울 광화문에서 정동(正東)쪽에 위치해 "정동진"이라는 이름을 얻은 해안 간이역',
+                    '1995년 드라마 "모래시계" 방영 이후 폐역 위기에서 전국 최고의 일출·기차여행 성지로 부활',
+                    '승강장 옆 노송(고현정 소나무)과 동해 바다를 배경으로 KTX-이음과 누리호가 정차하는 이색 풍경',
+                    '매년 1월 1일 해맞이 특별열차가 집중 투입되는 대한민국 일출 1번지'
+                ],
+                story: '기차 문이 열리자마자 짠 바다 내음과 파도 소리가 들리는 곳입니다. 이른 아침 붉은 해가 수평선 위로 떠오를 때 승강장에서 찍는 역명판 사진이 가장 유명합니다.'
+            },
+            {
+                id: 'station-chujeon',
+                name: '추전역 (대한민국 최고도 기차역)',
+                subName: '해발 855m 백두대간 능선에 자리한 대한민국에서 가장 높은 기차역',
+                category: 'station',
+                isStation: true,
+                catLabel: '상징적인 역',
+                catBadgeClass: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+                powerType: '태백선 · 해발 855m 국내 최고도 역사',
+                introYear: '1973년 11월 개업',
+                maxSpeed: '강원 태백시 화전동',
+                opSpeed: '해발고도 855m (국내 1위)',
+                capacity: '태백선 단선 교행역 · 스위스풍 역사',
+                manufacturer: '태백선 무궁화호 · 환상선 눈꽃순환열차 경유',
+                gradientTheme: 'from-indigo-950 via-slate-900 to-blue-950',
+                accentColor: '#6366f1',
+                svgPreset: 'classic-loco',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Chujeon_station,_Taebaek_Line_(to_Jecheon).jpg?width=1000',
+                imageCaption: '해발 855m 백두대간 고원에 자리한 대한민국 최고도 기차역 추전역',
+                routes: ['태백선 (제천 ~ 영월 ~ 민둥산 ~ 고한 ~ 추전 ~ 태백)'],
+                stations: '국내 최장 급경사 루프터널인 정암터널(4,505m)을 뚫고 올라서면 만나는 고원 기차역 (고한역~태백역 사이 위치)',
+                features: [
+                    '해발 855m 고지대에 위치하여 한여름에도 평균 기온이 선선하고 겨울에는 눈이 가장 먼저 내리고 늦게 녹는 설국 역사',
+                    '석탄 산업 전성기 시절 무연탄 수송을 위해 건설되었으며, 현재는 여객 취급 중지 후 관광열차 및 신호·교행 기능 수행',
+                    '역 구내에 "한국에서 가장 높은 곳에 위치한 역(해발 855m)" 기념 조형물과 산장풍 역사 보존',
+                    '태백산 눈꽃축제 시즌 눈꽃열차의 필수 정차 포토 스팟'
+                ],
+                story: '무궁화호를 타고 고한역을 지나 긴 정암터널을 빠져나올 때 창밖을 유심히 보면 아담한 산장 모양의 추전역 승강장을 만날 수 있습니다.'
+            },
+            {
+                id: 'station-seungbu',
+                name: '승부역 (대한민국 최고 오지 협곡역)',
+                subName: '"하늘도 세 평, 꽃밭도 세 평" 기차로만 닿을 수 있던 백두대간 비경역',
+                category: 'station',
+                isStation: true,
+                catLabel: '상징적인 역',
+                catBadgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+                powerType: '영동선 · 국내 대표 오지 간이역',
+                introYear: '1956년 1월 개업',
+                maxSpeed: '경북 봉화군 석포면',
+                opSpeed: '낙동강 상류 절벽 협곡 위치',
+                capacity: '단선 승강장 · 역무원 기념비 보존',
+                manufacturer: '백두대간 협곡열차(V-Train) · 동해산타열차 · 무궁화호 정차',
+                gradientTheme: 'from-emerald-950 via-slate-900 to-teal-950',
+                accentColor: '#10b981',
+                svgPreset: 'retro-vtrain',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Korail_Yeongdong_Line_Seungbu_Station.jpg?width=1000',
+                imageCaption: '깎아지른 절벽과 낙동강 계곡 사이에 자리한 영동선 오지 간이역 승부역',
+                routes: ['영동선 (영주 ~ 분천 ~ 양원 ~ 승부 ~ 철암 ~ 동해)'],
+                stations: '1999년 환상선 눈꽃열차 운행 전까지 자동차 도로가 전혀 없어 오직 기차로만 출입할 수 있었던 전설의 오지 간이역',
+                features: [
+                    '1960년대 근무하던 역무원 김찬빈 씨가 암벽에 새긴 "승부역은 하늘도 세 평이요 꽃밭도 세 평이나 영동의 심장이요 수송의 동맥이다" 글귀로 유명',
+                    '낙동강 최상류 맑은 계곡물과 수직 기암절벽 사이에 둥지를 튼 극적인 입지',
+                    '백두대간 협곡열차(V-Train)와 동해산타열차가 정차하면 역 앞 간이 장터에서 산나물과 토속 먹거리를 즐길 수 있음',
+                    '한국의 아름다운 간이역 선정 시 빠지지 않고 1순위로 꼽히는 철도 여행 성지'
+                ],
+                story: '겨울철 눈 쌓인 승부역 플랫폼에 V-Train 아기백호 열차가 멈춰 서는 장면은 대한민국 철도 사진가들이 가장 사랑하는 겨울 출사 걸작입니다.'
+            },
+            {
+                id: 'station-yangwon',
+                name: '양원역 (대한민국 최초 민자역사)',
+                subName: '마을 주민들이 직접 손으로 벽돌을 쌓아 만든 세상에서 가장 작은 민자역',
+                category: 'station',
+                isStation: true,
+                catLabel: '상징적인 역',
+                catBadgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                powerType: '영동선 · 국내 최초 주민 건립 민자역',
+                introYear: '1988년 4월 개업',
+                maxSpeed: '경북 봉화군 소천면',
+                opSpeed: '초미니 단선 간이승강장',
+                capacity: '대합실 1동 · 비동~승부 구간 위치',
+                manufacturer: '백두대간 협곡열차(V-Train) · 동해산타열차 · 무궁화호 정차',
+                gradientTheme: 'from-amber-950 via-slate-900 to-orange-950',
+                accentColor: '#f59e0b',
+                svgPreset: 'retro-vtrain',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Korail_Yeongdong_Line_Yangwon_Station.jpg?width=1000',
+                imageCaption: '마을 주민들이 직접 지은 대한민국 최초 민자역사 영동선 양원역',
+                routes: ['영동선 (영주 ~ 분천 ~ 양원 ~ 승부 ~ 철암)'],
+                stations: '분천역과 승부역 사이 원곡마을 주민들이 기차를 타기 위해 철도청 허가를 받아 직접 세운 감동 스토리의 간이역',
+                features: [
+                    '과거 기차가 서지 않아 험준한 철길을 걸어 다니다 사고를 당하던 마을 주민들이 청원 끝에 직접 건립한 "대한민국 1호 민자역사"',
+                    '지붕과 대합실 의자, 화장실까지 주민들의 손길이 닿은 아담하고 따뜻한 목조·시멘트 역사',
+                    '낙동강 세평하늘길 트레킹 코스의 핵심 출발점이자 V-Train 여행객들의 인기 포토존',
+                    '마을 주민들이 직접 운영한 정겨운 옛 매점과 역명판 보존'
+                ],
+                story: '거대한 민자역사인 서울역·영등포역과 달리, 오직 마을 사람들의 간절한 마음으로 지어진 가장 작고 위대한 민자역사로 불립니다.'
+            },
+            {
+                id: 'station-buncheon',
+                name: '분천역 산타마을 (V-Train 시종착역)',
+                subName: '1년 365일 크리스마스 캐럴이 울려 퍼지는 백두대간 산타마을 기차역',
+                category: 'station',
+                isStation: true,
+                catLabel: '상징적인 역',
+                catBadgeClass: 'bg-red-500/20 text-red-300 border-red-500/30',
+                powerType: '영동선 · 한국관광의 별 선정 산타마을',
+                introYear: '1956년 1월 개업',
+                maxSpeed: '경북 봉화군 소천면',
+                opSpeed: '해발 약 390m 분천 계곡',
+                capacity: '혼합식 승강장 · 산타 테마 광장',
+                manufacturer: 'V-Train(협곡열차) · 동해산타열차 · 무궁화호 정차',
+                gradientTheme: 'from-red-950 via-slate-900 to-rose-950',
+                accentColor: '#ef4444',
+                svgPreset: 'retro-vtrain',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Korail_Yeongdong_Line_Buncheon_Station.jpg?width=1000',
+                imageCaption: '백두대간 협곡열차와 동해산타열차가 만나는 영동선 분천역',
+                routes: ['영동선 (영주 ~ 분천 ~ 철암 ~ 동해 ~ 강릉)'],
+                stations: '백두대간 협곡열차(V-Train)와 동해산타열차가 교차하는 대한민국 대표 철도 관광 거점역',
+                features: [
+                    '2013년 V-Train 개통과 함께 스위스 체르마트역과 자매결연을 맺고 "한여름·한겨울 산타마을"로 탈바꿈한 성공 사례',
+                    '빨간 지붕의 산타 역사, 산타 썰매 포토존, 풍차와 이글루 조형물이 어우러진 이국적 풍경',
+                    '하루 수십 명 이용하던 시골 간이역에서 연간 수십만 명이 찾는 글로벌 철도 관광 명소로 도약',
+                    'V-Train과 동해산타열차를 갈아타는 환승 여행객들의 필수 체류역'
+                ],
+                story: '기차역 하나가 쇠퇴하던 산골 마을을 어떻게 기적처럼 살려냈는지 보여주는 대한민국 철도 관광의 교과서 같은 역입니다.'
+            },
+            {
+                id: 'station-cheoram',
+                name: '철암역 (탄광 역사와 까치발 건물의 상징)',
+                subName: '대한민국 석탄산업의 심장이었던 태백선·영동선 교차 거점역',
+                category: 'station',
+                isStation: true,
+                catLabel: '상징적인 역',
+                catBadgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                powerType: '태백선·영동선 분기점 · 근대산업유산',
+                introYear: '1940년 8월 개업',
+                maxSpeed: '강원 태백시 철암동',
+                opSpeed: '해발 약 560m 고원 분기역',
+                capacity: '다선 화물·여객 혼합 승강장',
+                manufacturer: 'ITX-마음 · 무궁화호 · V-Train · 동해산타열차 정차',
+                gradientTheme: 'from-slate-950 via-amber-950 to-slate-900',
+                accentColor: '#d97706',
+                svgPreset: 'classic-loco',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Korail_Yeongdong_Line_Cheoram_Station.jpg?width=1000',
+                imageCaption: '태백선과 영동선이 만나는 탄광 역사의 현장 철암역',
+                routes: ['태백선 종점 (청량리~제천~태백~철암)', '영동선 경유 (영주~분천~철암~동해~강릉)'],
+                stations: '태백선 열차의 종착점이자 영동선 협곡 구간이 시작되는 백두대간 철도 교통의 핵심 요충지',
+                features: [
+                    '1970~80년대 대한민국 난방과 산업을 책임진 무연탄을 전국으로 실어 나르던 국내 최대 석탄 물류 기지',
+                    '역 바로 앞 철암천 위에 기둥을 박아 지은 등록문화재 "철암탄광역사촌(까치발 건물)"과 마주 보고 있음',
+                    '거대한 철암역 선탄장 시설과 화물 조차장 선로가 웅장한 산업 풍경을 연출',
+                    '청량리발 ITX-마음·무궁화호와 분천발 V-Train이 만나는 여행 환승 거점'
+                ],
+                story: '역 광장을 나서면 검은 석탄 가루가 날리던 1980년대 탄광촌의 시간이 멈춘 듯한 철암탄광역사촌을 바로 만날 수 있습니다.'
+            },
+            {
+                id: 'station-dorasan',
+                name: '도라산역 ("북쪽으로 가는 첫 번째 역")',
+                subName: '경의선 최북단 민간인출입통제선 내 위치한 한반도 평화·통일 상징역',
+                category: 'station',
+                isStation: true,
+                catLabel: '상징적인 역',
+                catBadgeClass: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+                powerType: '경의선 최북단 · 국제선 출입경 시설 완비',
+                introYear: '2002년 4월 개업',
+                maxSpeed: '경기 파주시 장단면',
+                opSpeed: '군사분계선(MDL) 남방 700m',
+                capacity: '평양방면 국제승강장 · 세관/출입국 심사대',
+                manufacturer: '임진강~도라산 셔틀전동차 · DMZ 평화관광 연계',
+                gradientTheme: 'from-blue-950 via-slate-900 to-cyan-950',
+                accentColor: '#3b82f6',
+                svgPreset: 'bullet-sharp',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/Dorasan_station.jpg?width=1000',
+                imageCaption: '경의선 최북단 "북쪽으로 가는 첫 번째 역" 도라산역 역사 전경',
+                routes: ['경의선 (서울/문산 ~ 임진강 ~ 도라산 ~ [장단/개성/평양 방면])'],
+                stations: '개성역까지 불과 22km, 평양역까지 205km 거리에 위치한 대한민국 최북단 현대식 기차역',
+                features: [
+                    '역사 내부에 "남쪽의 마지막 역이 아니라 북쪽으로 가는 첫 번째 역입니다"라는 상징 문구와 평양방면 행선판 설치',
+                    '미래 유라시아 대륙철도(TCR·TSR) 연결을 대비해 세관(CIQ)·출입국관리·검역 시설을 모두 갖춘 국제역 구조',
+                    '민통선(민간인출입통제선) 내부에 위치해 임진강역에서 출입 절차 및 DMZ 연계 관광으로 방문 가능',
+                    '2007~2008년 실제 도라산~판문 간 화물열차가 정기 운행되었던 역사적 현장'
+                ],
+                story: '승강장에 서면 철길이 북녘을 향해 곧게 뻗어 있는 모습을 볼 수 있어, 한반도 분단의 현실과 대륙횡단철도의 꿈을 동시에 체감하게 합니다.'
+            },
+            {
+                id: 'station-busan',
+                name: '부산역 (경부선 종착 & 유라시아 출발점)',
+                subName: '한반도 제1의 간선 경부선이 바다와 만나는 대한민국 관문 기차역',
+                category: 'station',
+                isStation: true,
+                catLabel: '상징적인 역',
+                catBadgeClass: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
+                powerType: '경부선·경부고속선 종착역 · 항만 연계 허브',
+                introYear: '1908년 개업 (2004년 고속철도 역사 신축)',
+                maxSpeed: '부산 동구 중앙대로',
+                opSpeed: '서울 기점 441.7km 종착',
+                capacity: '지상 6면 11선 대형 승강장 · 북항 데크 연결',
+                manufacturer: 'KTX-청룡 · KTX-1 · KTX-산천 · SRT · ITX · 무궁화호',
+                gradientTheme: 'from-sky-950 via-slate-900 to-blue-950',
+                accentColor: '#0284c7',
+                svgPreset: 'bullet-curved',
+                imageUrl: 'https://commons.wikimedia.org/wiki/Special:FilePath/BUSAN_STATION_SOUTH_KOREA_OCT_2012_(8229698980).jpg?width=1000',
+                imageCaption: '경부선과 경부고속선의 종착점이자 해양 관문인 부산역 전경',
+                routes: ['경부고속선 (서울/수서 ~ 대전 ~ 동대구 ~ 부산)', '경부선 일반 (서울 ~ 수원 ~ 대전 ~ 대구 ~ 부산)'],
+                stations: '대한민국 모든 KTX·SRT·ITX·무궁화호가 집결하는 남부권 최대 철도 관문이자 부산항 국제여객터미널 연결 거점',
+                features: [
+                    '서울역에서 출발한 경부선(441.7km)과 경부고속선이 대장정을 마치는 종착역(두단식 형태 구조)',
+                    '유라시아 대륙횡단철도(AH6·TSR)의 한반도 기종점을 상징하는 대형 기념비 설치',
+                    '역 뒤편 보행데크를 통해 부산항(북항) 재개발 친수공원과 바다 조망이 바로 연결되는 입지',
+                    '하루 수백 편의 KTX-청룡, KTX-1, SRT가 쉴 새 없이 드나드는 역동적인 철도 명소'
+                ],
+                story: '기차에서 내려 개찰구를 빠져나오면 탁 트인 부산항 바다 내음과 활기찬 부산 원도심의 풍경이 여행자를 맞이하는 낭만적인 종착역입니다.'
+            }
+        ];
+
+        let selectedTrainId = 'ktx-cheongryong';
+        let activeCategory = 'all';
+
+        // Initialize App UI safely
+        function initApp() {
+            try {
+                populateDropdown();
+                filterTrains();
+                selectTrain('ktx-cheongryong');
+            } catch (err) {
+                console.error('Initialization error:', err);
+            }
+        }
+
+        // Populate Quick Train & Station Select Dropdown with Optgroups
+        function populateDropdown() {
+            const dropdown = document.getElementById('train-select-dropdown');
+            if (!dropdown) return;
+            const trainsOnly = trainDatabase.filter(item => !item.isStation);
+            const stationsOnly = trainDatabase.filter(item => item.isStation);
+
+            let optionsHtml = '<optgroup label="🚄 대한민국 대표 열차">';
+            trainsOnly.forEach(train => {
+                optionsHtml += `<option value="${train.id}">${train.name}</option>`;
+            });
+            optionsHtml += '</optgroup>';
+
+            optionsHtml += '<optgroup label="🏛️ 상징적인 대표 기차역">';
+            stationsOnly.forEach(st => {
+                optionsHtml += `<option value="${st.id}">${st.name}</option>`;
+            });
+            optionsHtml += '</optgroup>';
+
+            dropdown.innerHTML = optionsHtml;
+        }
+
+        // Render Train & Station List Cards on Sidebar
+        function renderTrainList(list) {
+            const container = document.getElementById('train-list-container');
+            const badge = document.getElementById('train-count-badge');
+            if (!container) return;
+            if (badge) badge.innerText = list.length;
+
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center text-slate-400">
+                        <i class="fa-solid fa-train-subway text-3xl text-slate-600 mb-3 block"></i>
+                        <p class="text-xs font-bold text-slate-300">검색 조건에 일치하는 열차나 역이 없습니다.</p>
+                        <p class="text-[11px] text-slate-500 mt-1">다른 역 이름이나 열차명으로 검색해 보세요.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            list.forEach(train => {
+                const isActive = train.id === selectedTrainId;
+                const metaIcon = train.isStation ? 'fa-location-dot' : 'fa-bolt';
+                const metaText = train.isStation ? train.maxSpeed : train.powerType.split(' ')[0];
+                html += `
+                    <div onclick="selectTrain('${train.id}')" id="card-${train.id}" 
+                         class="p-3 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${isActive ? 'train-card-active border-cyan-400 bg-cyan-950/40 shadow-lg' : 'border-slate-800/80 bg-slate-900/50 hover:bg-slate-800/60 hover:border-slate-700'}">
+                        <img src="${train.imageUrl}" alt="${train.name}" 
+                             class="w-16 h-16 rounded-xl object-cover shrink-0 border border-slate-700/80 bg-slate-800"
+                             onerror="this.onerror=null; this.src='https://placehold.co/160x160/0f172a/38bdf8?text=RAIL';">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${train.catBadgeClass}">${train.catLabel}</span>
+                                <span class="text-[11px] font-extrabold text-cyan-400 truncate max-w-[125px]">${train.opSpeed}</span>
+                            </div>
+                            <h4 class="font-extrabold text-slate-100 text-sm flex items-center justify-between truncate">
+                                <span class="truncate">${train.name}</span>
+                                <i class="fa-solid fa-chevron-right text-[10px] text-slate-500 ml-1 shrink-0"></i>
+                            </h4>
+                            <p class="text-[11px] text-slate-400 truncate mt-0.5">${train.subName}</p>
+                            <div class="mt-1.5 pt-1.5 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-slate-500">
+                                <span class="truncate"><i class="fa-solid ${metaIcon} mr-1"></i>${metaText}</span>
+                                <span class="shrink-0"><i class="fa-solid fa-calendar mr-1"></i>${train.introYear}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Filter Trains by Category & Search Keywords (supports multi-station segment search)
+        function filterTrains() {
+            const inputEl = document.getElementById('train-search-input');
+            const clearBtn = document.getElementById('clear-search-btn');
+            const rawQuery = inputEl ? inputEl.value.trim().toLowerCase() : '';
+
+            if (clearBtn) {
+                if (rawQuery.length > 0) clearBtn.classList.remove('hidden');
+                else clearBtn.classList.add('hidden');
+            }
+
+            const tokens = rawQuery.split(/[\s,\-↔→>]+/).filter(Boolean);
+
+            const filtered = trainDatabase.filter(train => {
+                if (activeCategory !== 'all' && train.category !== activeCategory) {
+                    return false;
+                }
+                if (tokens.length === 0) return true;
+
+                const searchableText = [
+                    train.name,
+                    train.subName,
+                    train.catLabel,
+                    train.powerType,
+                    train.manufacturer,
+                    train.routes.join(' '),
+                    train.stations,
+                    train.features.join(' ')
+                ].join(' ').toLowerCase();
+
+                return tokens.every(token => {
+                    const cleanToken = token.endsWith('역') && token.length > 2 ? token.slice(0, -1) : token;
+                    return searchableText.includes(cleanToken);
+                });
+            });
+
+            renderTrainList(filtered);
+        }
+
+        // Filter by Category Pill
+        function filterCategory(cat) {
+            activeCategory = cat;
+            document.querySelectorAll('.cat-pill').forEach(btn => {
+                btn.classList.remove('bg-cyan-500', 'text-slate-950', 'font-bold');
+                btn.classList.add('bg-slate-800', 'text-slate-300', 'font-medium');
+            });
+
+            const activeBtn = document.getElementById(`cat-${cat}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-slate-800', 'text-slate-300', 'font-medium');
+                activeBtn.classList.add('bg-cyan-500', 'text-slate-950', 'font-bold');
+            }
+
+            filterTrains();
+        }
+
+        // Set Quick Segment Search Query
+        function setSegmentSearch(query) {
+            const inputEl = document.getElementById('train-search-input');
+            if (inputEl) {
+                inputEl.value = query;
+                filterCategory('all');
+                filterTrains();
+            }
+        }
+
+        // Clear Search Input
+        function clearSearch() {
+            const inputEl = document.getElementById('train-search-input');
+            if (inputEl) {
+                inputEl.value = '';
+                filterTrains();
+            }
+        }
+
+        // Select a Train & Render Full Details
+        function selectTrain(trainId) {
+            const train = trainDatabase.find(t => t.id === trainId);
+            if (!train) return;
+
+            selectedTrainId = trainId;
+
+            const dropdown = document.getElementById('train-select-dropdown');
+            if (dropdown && dropdown.value !== trainId) {
+                dropdown.value = trainId;
+            }
+
+            // Highlight active card
+            document.querySelectorAll('[id^="card-"]').forEach(el => {
+                el.classList.remove('train-card-active', 'border-cyan-400', 'bg-cyan-950/40', 'shadow-lg');
+                el.classList.add('border-slate-800/80', 'bg-slate-900/50');
+            });
+            const activeCard = document.getElementById(`card-${trainId}`);
+            if (activeCard) {
+                activeCard.classList.remove('border-slate-800/80', 'bg-slate-900/50');
+                activeCard.classList.add('train-card-active', 'border-cyan-400', 'bg-cyan-950/40', 'shadow-lg');
+            }
+
+            // Update Hero Banner Gradient
+            const heroBanner = document.getElementById('hero-banner');
+            if (heroBanner) {
+                heroBanner.className = `relative min-h-[320px] md:min-h-[390px] p-6 md:p-10 flex flex-col justify-between overflow-hidden transition-all duration-700 bg-gradient-to-br ${train.gradientTheme} shrink-0`;
+            }
+
+            // Update Text Fields safely
+            const setText = (id, text) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = text;
+            };
+            const setHtml = (id, html) => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = html;
+            };
+
+            const isStation = Boolean(train.isStation);
+
+            // Adapt labels between Train Specs and Symbolic Station Specs
+            setText('detail-year-label', isStation ? '개업/준공:' : '도입시기:');
+            setHtml('metric-label-1', isStation 
+                ? '<i class="fa-solid fa-location-dot text-cyan-400"></i> 소재지 위치' 
+                : '<i class="fa-solid fa-gauge-high text-cyan-400"></i> 설계 최고속도');
+            setHtml('metric-label-2', isStation 
+                ? '<i class="fa-solid fa-award text-amber-400"></i> 핵심 상징 기록' 
+                : '<i class="fa-solid fa-bolt text-amber-400"></i> 영업 최고속도');
+            setHtml('metric-label-3', isStation 
+                ? '<i class="fa-solid fa-building-columns text-emerald-400"></i> 역사 구조 / 특징' 
+                : '<i class="fa-solid fa-users text-emerald-400"></i> 좌석 / 편성 정원');
+            setHtml('metric-label-4', isStation 
+                ? '<i class="fa-solid fa-train text-purple-400"></i> 주요 정차 열차' 
+                : '<i class="fa-solid fa-industry text-purple-400"></i> 제작사 / 편성');
+
+            setHtml('section-photo-title', isStation 
+                ? '<i class="fa-solid fa-image text-cyan-400"></i> 기차역 실물 전경 포토 (Station Photo)' 
+                : '<i class="fa-solid fa-image text-cyan-400"></i> 열차 실물 외관 포토 (Exterior Photo)');
+            setHtml('section-route-title', isStation 
+                ? '<i class="fa-solid fa-route text-emerald-400"></i> 연결 노선 및 입지 안내' 
+                : '<i class="fa-solid fa-route text-emerald-400"></i> 운행 노선 및 주요 정차역');
+            setText('detail-routes-subtitle', isStation ? '소속 및 연결 노선' : '투입 노선');
+            setText('detail-stations-subtitle', isStation ? '역 주변 환경 및 철도 연계 안내' : '주요 정차역 및 경유 구간');
+            setHtml('section-spec-title', isStation 
+                ? '<i class="fa-solid fa-landmark text-cyan-400"></i> 역사 구조 및 핵심 상징 포인트 (Highlights)' 
+                : '<i class="fa-solid fa-microchip text-cyan-400"></i> 상세 기술 사양 및 핵심 특징 (Specifications)');
+            setHtml('section-story-title', isStation 
+                ? '<i class="fa-solid fa-book-open text-purple-400"></i> 기차역 스토리 &amp; 방문·출사 팁' 
+                : '<i class="fa-solid fa-book-open text-purple-400"></i> 열차 스토리 &amp; 출사 팁');
+
+            const catBadge = document.getElementById('detail-category-badge');
+            if (catBadge) {
+                catBadge.innerText = train.catLabel;
+                catBadge.className = `${train.catBadgeClass} border text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur`;
+            }
+
+            setText('detail-power-type', train.powerType);
+            setText('detail-intro-year', train.introYear);
+            setText('detail-name', train.name);
+            setText('detail-subname', train.subName);
+            setText('detail-max-speed', train.maxSpeed);
+            setText('detail-op-speed', train.opSpeed);
+            setText('detail-capacity', train.capacity);
+            setText('detail-manufacturer', train.manufacturer);
+
+            // Update Real Train Photos
+            const heroPhoto = document.getElementById('hero-train-photo');
+            const svgWrapper = document.getElementById('hero-train-svg-wrapper');
+            if (heroPhoto) {
+                heroPhoto.style.display = 'block';
+                heroPhoto.src = train.imageUrl;
+            }
+            if (svgWrapper) svgWrapper.classList.add('hidden');
+
+            const detailPhoto = document.getElementById('detail-train-photo');
+            if (detailPhoto) {
+                detailPhoto.src = train.imageUrl;
+                detailPhoto.alt = train.name;
+            }
+            setText('detail-photo-caption', train.imageCaption || `${train.name} 실물 외관`);
+
+            // Update Routes Pills & Stations
+            const routesContainer = document.getElementById('detail-routes-container');
+            if (routesContainer) {
+                routesContainer.innerHTML = train.routes.map(route => `
+                    <span class="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-xs font-semibold px-3 py-1.5 rounded-xl">
+                        <i class="fa-solid fa-train-tram mr-1.5 text-emerald-400"></i>${route}
+                    </span>
+                `).join('');
+            }
+            setText('detail-stations-text', train.stations);
+
+            // Update Features List
+            const featuresList = document.getElementById('detail-features-list');
+            if (featuresList) {
+                featuresList.innerHTML = train.features.map(feat => `
+                    <li class="flex items-start gap-2.5">
+                        <i class="fa-solid fa-circle-check text-cyan-400 mt-1 shrink-0"></i>
+                        <span class="leading-relaxed">${feat}</span>
+                    </li>
+                `).join('');
+            }
+
+            // Update Story Text
+            setText('detail-story-text', train.story);
+
+            // Update Fallback SVG Artwork
+            renderTrainSVG(train.svgPreset, train.accentColor);
+
+            // Scroll main view back to top smoothly
+            const mainView = document.getElementById('main-view-container');
+            if (mainView) mainView.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Lightbox Photo Modal Controls
+        function openPhotoModal() {
+            const train = trainDatabase.find(t => t.id === selectedTrainId) || trainDatabase[0];
+            if (!train) return;
+
+            const modal = document.getElementById('photo-modal');
+            const modalImg = document.getElementById('modal-train-img');
+            const modalTitle = document.getElementById('modal-train-title');
+            const modalCaption = document.getElementById('modal-train-caption');
+
+            if (modalImg) modalImg.src = train.imageUrl;
+            if (modalTitle) modalTitle.innerText = `${train.name} - 실물 사진`;
+            if (modalCaption) modalCaption.innerText = train.imageCaption || train.subName;
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closePhotoModal() {
+            const modal = document.getElementById('photo-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        // Generate Custom Vector SVG Head for Train Visual Background (Fallback)
+        function renderTrainSVG(preset, color) {
+            const svgEl = document.getElementById('hero-train-svg');
+            if (!svgEl) return;
+
+            svgEl.style.color = color || '#38bdf8';
+
+            if (preset === 'bullet-sharp') {
+                svgEl.innerHTML = `
+                    <path d="M50,230 L760,230 L760,90 L330,90 C220,90 120,150 50,230 Z" fill="currentColor" opacity="0.6"/>
+                    <path d="M160,160 L290,120 L290,160 Z" fill="#0f172a" opacity="0.8"/>
+                    <rect x="330" y="120" width="90" height="40" rx="8" fill="#0f172a" opacity="0.7"/>
+                    <rect x="440" y="120" width="90" height="40" rx="8" fill="#0f172a" opacity="0.7"/>
+                    <rect x="550" y="120" width="90" height="40" rx="8" fill="#0f172a" opacity="0.7"/>
+                    <rect x="660" y="120" width="80" height="40" rx="8" fill="#0f172a" opacity="0.7"/>
+                    <line x1="20" y1="245" x2="780" y2="245" stroke="currentColor" stroke-width="6"/>
+                `;
+            } else if (preset === 'bullet-curved') {
+                svgEl.innerHTML = `
+                    <path d="M60,230 L760,230 L760,95 L320,95 C190,95 100,145 60,230 Z" fill="currentColor" opacity="0.6"/>
+                    <path d="M135,165 C170,130 220,120 270,120 L270,165 Z" fill="#0f172a" opacity="0.8"/>
+                    <rect x="310" y="125" width="420" height="35" rx="12" fill="#0f172a" opacity="0.65"/>
+                    <line x1="20" y1="245" x2="780" y2="245" stroke="currentColor" stroke-width="6"/>
+                `;
+            } else {
+                svgEl.innerHTML = `
+                    <rect x="80" y="90" width="680" height="140" rx="22" fill="currentColor" opacity="0.6"/>
+                    <rect x="110" y="115" width="95" height="50" rx="8" fill="#0f172a" opacity="0.8"/>
+                    <rect x="240" y="115" width="110" height="45" rx="6" fill="#0f172a" opacity="0.7"/>
+                    <rect x="370" y="115" width="110" height="45" rx="6" fill="#0f172a" opacity="0.7"/>
+                    <rect x="500" y="115" width="110" height="45" rx="6" fill="#0f172a" opacity="0.7"/>
+                    <rect x="630" y="115" width="100" height="45" rx="6" fill="#0f172a" opacity="0.7"/>
+                    <line x1="20" y1="245" x2="780" y2="245" stroke="currentColor" stroke-width="6"/>
+                `;
+            }
+        }
+
+        // Explicitly bind functions to global window object for inline handlers
+        window.openPhotoModal = openPhotoModal;
+        window.closePhotoModal = closePhotoModal;
+        window.selectTrain = selectTrain;
+        window.filterTrains = filterTrains;
+        window.filterCategory = filterCategory;
+        window.setSegmentSearch = setSegmentSearch;
+        window.clearSearch = clearSearch;
+
+        // Close modal on Escape key press
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closePhotoModal();
+            }
+        });
+
+        // Boot up on DOMContentLoaded and window load
+        document.addEventListener('DOMContentLoaded', initApp);
+        window.onload = initApp;
+    </script>
+</body>
+</html>
